@@ -29,7 +29,7 @@
 	"kv_namespaces": [
 		{
 			"binding": "NEXT_INC_CACHE_KV",
-			"id": "REEMPLAZAR_CON_EL_ID_DE_KV"
+			"id": "06d78dba964d4bfd9e78576eba45e69c"
 		}
 	],
 	// Caché de tags: crea la base con `npx wrangler d1 create isf-web-tag-cache` y pega aquí el id.
@@ -37,7 +37,7 @@
 		{
 			"binding": "NEXT_TAG_CACHE_D1",
 			"database_name": "isf-web-tag-cache",
-			"database_id": "REEMPLAZAR_CON_EL_ID_DE_D1"
+			"database_id": "d7d70f19-571b-47a3-aab4-db849f906ac3"
 		}
 	],
 	// Cola de revalidación (Durable Object con SQLite, entra en el plan gratis).
