@@ -24,11 +24,12 @@
 		"binding": "IMAGES"
 	},
 	// --- Caché (ver open-next.config.ts y docs/DEPLOY-CLOUDFLARE.md) ---
-	// Caché incremental: requiere tener R2 activado en la cuenta.
-	"r2_buckets": [
+	// Caché incremental en KV (gratis, sin tarjeta). Crea el namespace con
+	// `npx wrangler kv namespace create isf-web-cache` y pega aquí el id.
+	"kv_namespaces": [
 		{
-			"binding": "NEXT_INC_CACHE_R2_BUCKET",
-			"bucket_name": "isf-web-cache"
+			"binding": "NEXT_INC_CACHE_KV",
+			"id": "REEMPLAZAR_CON_EL_ID_DE_KV"
 		}
 	],
 	// Caché de tags: crea la base con `npx wrangler d1 create isf-web-tag-cache` y pega aquí el id.

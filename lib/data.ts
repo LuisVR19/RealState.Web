@@ -133,7 +133,7 @@ const isCacheable = (f: SearchFilters) =>
 
 async function searchCached(f: SearchFilters): Promise<SearchResult> {
   "use cache";
-  cacheLife("minutes");
+  cacheLife("hours");
   cacheTag(TAGS.properties);
   return runSearch(f);
 }
@@ -165,14 +165,14 @@ export async function getPropertiesByIds(ids: string[]): Promise<PropertySummary
 /** Catálogo publicado completo (hasta CATALOG_LIMIT), del más reciente al más antiguo. */
 export async function getPublishedProperties(): Promise<SearchResult> {
   "use cache";
-  cacheLife("minutes");
+  cacheLife("hours");
   cacheTag(TAGS.properties);
   return runSearch(EMPTY_FILTERS, {}, CATALOG_LIMIT);
 }
 
 export async function getPropertiesByAgent(agentId: string): Promise<PropertySummary[]> {
   "use cache";
-  cacheLife("minutes");
+  cacheLife("hours");
   cacheTag(TAGS.properties);
   if (!isUuid(agentId)) return [];
   return (await runSearch(EMPTY_FILTERS, { p_agent_id: agentId }, CATALOG_LIMIT)).items;
@@ -189,7 +189,7 @@ export async function getPropertyByCode(rawCode: string): Promise<Property | nul
 
 async function getPropertyByCodeCached(code: string): Promise<Property | null> {
   "use cache";
-  cacheLife("minutes");
+  cacheLife("hours");
   cacheTag(TAGS.properties, TAGS.property(code));
 
   const { data: r, error } = await createPublicClient()
