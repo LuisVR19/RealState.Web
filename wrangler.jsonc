@@ -1,7 +1,7 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"main": ".open-next/worker.js",
-	"name": "innovacion-sin-fronteras",
+	"name": "realstate-web",
 	"compatibility_date": "2026-10-30",
 	"compatibility_flags": [
 		"nodejs_compat",
@@ -16,7 +16,7 @@
 			// Se referencia a sí mismo; el nombre del servicio tiene que ser igual al "name" del Worker.
 			// https://opennext.js.org/cloudflare/caching
 			"binding": "WORKER_SELF_REFERENCE",
-			"service": "innovacion-sin-fronteras"
+			"service": "realstate-web"
 		}
 	],
 	"images": {
