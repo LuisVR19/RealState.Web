@@ -40,7 +40,7 @@ export function Gallery({ images, title }: { images: string[]; title: string }) 
         <div className="lightbox">
           <div className="lightbox-top">
             <span style={{ fontSize: 13, color: "var(--color-neutral-400)" }}>{idx + 1} de {k}</span>
-            <button className="btn btn-secondary btn-icon" onClick={() => setLightbox(false)} aria-label="Cerrar"><i className="ph ph-x" style={{ fontSize: 17 }} /></button>
+            <button className="lightbox-close" onClick={() => setLightbox(false)} aria-label="Cerrar" title="Cerrar (Esc)"><i className="ph ph-x" style={{ fontSize: 20 }} /></button>
           </div>
           <div className="lightbox-stage">
             <img src={images[idx]} alt="" />

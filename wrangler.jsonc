@@ -1,0 +1,57 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"main": ".open-next/worker.js",
+	"name": "innovacion-sin-fronteras",
+	"compatibility_date": "2026-10-30",
+	"compatibility_flags": [
+		"nodejs_compat",
+		"global_fetch_strictly_public"
+	],
+	"assets": {
+		"directory": ".open-next/assets",
+		"binding": "ASSETS"
+	},
+	"services": [
+		{
+			// Se referencia a sí mismo; el nombre del servicio tiene que ser igual al "name" del Worker.
+			// https://opennext.js.org/cloudflare/caching
+			"binding": "WORKER_SELF_REFERENCE",
+			"service": "innovacion-sin-fronteras"
+		}
+	],
+	"images": {
+		// Optimización de imágenes de next/image: https://opennext.js.org/cloudflare/howtos/image
+		"binding": "IMAGES"
+	},
+	// --- Caché (ver open-next.config.ts y docs/DEPLOY-CLOUDFLARE.md) ---
+	// Caché incremental: requiere tener R2 activado en la cuenta.
+	"r2_buckets": [
+		{
+			"binding": "NEXT_INC_CACHE_R2_BUCKET",
+			"bucket_name": "isf-web-cache"
+		}
+	],
+	// Caché de tags: crea la base con `npx wrangler d1 create isf-web-tag-cache` y pega aquí el id.
+	"d1_databases": [
+		{
+			"binding": "NEXT_TAG_CACHE_D1",
+			"database_name": "isf-web-tag-cache",
+			"database_id": "REEMPLAZAR_CON_EL_ID_DE_D1"
+		}
+	],
+	// Cola de revalidación (Durable Object con SQLite, entra en el plan gratis).
+	"durable_objects": {
+		"bindings": [
+			{
+				"name": "NEXT_CACHE_DO_QUEUE",
+				"class_name": "DOQueueHandler"
+			}
+		]
+	},
+	"migrations": [
+		{
+			"tag": "v1",
+			"new_sqlite_classes": ["DOQueueHandler"]
+		}
+	]
+}
