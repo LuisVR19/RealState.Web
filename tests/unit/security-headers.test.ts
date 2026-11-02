@@ -35,6 +35,15 @@ describe("next.config", () => {
     expect(dir("frame-src")).toBe("frame-src https://challenges.cloudflare.com");
   });
 
+  it("el estado de PPR se puede descomprimir en Cloudflare Workers (límite de zlib: 128 MB)", async () => {
+    // Next descomprime con maxOutputLength = 5 × maxPostponedStateSize; por encima de 128 MB, Workers
+    // lanza RangeError y las páginas quedan en blanco ("Failed to parse postponed state").
+    const { parseMaxPostponedStateSize } = await import("next/dist/shared/lib/size-limit");
+    const bytes = parseMaxPostponedStateSize(config.experimental?.maxPostponedStateSize);
+    expect(bytes).toBeDefined();
+    expect(bytes! * 5).toBeLessThanOrEqual(134_217_728);
+  });
+
   it("solo carga imágenes remotas por https", () => {
     for (const p of config.images?.remotePatterns ?? []) {
       expect(typeof p === "object" && "protocol" in p ? p.protocol : "https").toBe("https");

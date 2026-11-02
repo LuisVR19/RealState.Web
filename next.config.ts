@@ -16,6 +16,14 @@ const nextConfig: NextConfig = {
   // y la sesión solo se lee dentro de <Suspense> (ver lib/data.ts y app/para-ti).
   cacheComponents: true,
   partialPrefetching: true,
+  experimental: {
+    // OBLIGATORIO en Cloudflare Workers. Al completar una página prerenderizada (PPR), Next descomprime
+    // su estado con zlib.inflateSync limitando la salida a 5 × este valor. Con el valor por defecto
+    // (100 MB → 500 MB) el zlib de Workers lanza RangeError (su máximo es 128 MB): la parte dinámica
+    // no se renderiza en el servidor, el log dice "Failed to parse postponed state" y el navegador
+    // muestra la página en blanco o la rearma (React #419). 10 MB → 50 MB; el estado real pesa KB.
+    maxPostponedStateSize: "10 MB",
+  },
   poweredByHeader: false,
   images: {
     remotePatterns: [
