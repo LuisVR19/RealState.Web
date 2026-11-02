@@ -11,7 +11,7 @@ interface RateLimiter {
   limit(options: { key: string }): Promise<{ success: boolean }>;
 }
 
-export type LimiterName = "VISIT_LIMITER";
+export type LimiterName = "VISIT_LIMITER" | "TRACK_LIMITER";
 
 /** IP del visitante según Cloudflare (o el primer salto de x-forwarded-for fuera de Cloudflare). */
 export async function clientIp(): Promise<string> {

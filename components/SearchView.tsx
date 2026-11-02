@@ -7,6 +7,7 @@ import type { Map as LeafletMap } from "leaflet";
 import { amenityIcon, CANTONS, crc, dots, matchingPreset, OP_LABEL, pricePresetsFor, priceSuffix, TYPES, TYPE_ICON, TYPE_PLURAL, waProperty } from "@/lib/format";
 import { propertyPath, searchPath } from "@/lib/routes";
 import { activeFilterCount, PAGE_SIZE } from "@/lib/search-params";
+import { track } from "@/lib/track";
 import type { Agent, Operation, PropertySummary, SearchFilters, SortOrder } from "@/lib/types";
 import { Chip, toggle } from "./Chip";
 import { PropertyCard } from "./PropertyCard";
@@ -57,6 +58,12 @@ export function SearchView({ properties, total, agents, filters: f, activeChips 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  // Una "búsqueda" por cada combinación de filtros que la persona aplica (no se envía cuáles ni el texto).
+  const searchKey = activeFilterCount({ ...f, saved: false }) > 0 ? searchPath({ ...f, page: 1 }) : null;
+  useEffect(() => {
+    if (searchKey) track("search");
+  }, [searchKey]);
 
   /** Aplica un cambio de filtros (vuelve a la página 1). */
   const apply = (patch: Partial<SearchFilters>) =>

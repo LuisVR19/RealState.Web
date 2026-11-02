@@ -29,10 +29,10 @@ export const COMPANY = {
 } as const;
 
 /** Fecha de la última actualización de los documentos legales (se muestra en cada página). */
-export const LEGAL_UPDATED = "1 de noviembre de 2026";
+export const LEGAL_UPDATED = "2 de noviembre de 2026";
 
 /** Versión de la política de privacidad que acepta el usuario. */
-export const PRIVACY_VERSION = "2026-11-01";
+export const PRIVACY_VERSION = "2026-11-02";
 
 /** Plazos de conservación que se informan en la política de privacidad. */
 export const RETENTION = {

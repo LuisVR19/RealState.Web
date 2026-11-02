@@ -7,6 +7,7 @@ import "./globals.css";
 import { Suspense } from "react";
 import { AuthNotice } from "@/components/AuthNotice";
 import { SiteHeader } from "@/components/SiteHeader";
+import { SiteTracker } from "@/components/SiteTracker";
 import { UIProvider } from "@/components/ui-provider";
 import { getAmenities, getPublishedProperties, getSiteContact } from "@/lib/data";
 
@@ -41,6 +42,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               /propiedades/<código inválido>) Next exige un Suspense para no bloquear el prerender. */}
           <Suspense fallback={null}><SiteHeader /></Suspense>
           <Suspense fallback={null}><AuthNotice /></Suspense>
+          {/* Medición anónima de uso (sin cookies): vistas de página y clics de contacto. */}
+          <Suspense fallback={null}><SiteTracker /></Suspense>
           {children}
         </UIProvider>
       </body>

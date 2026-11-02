@@ -18,6 +18,23 @@ describe("next.config", () => {
     expect(h["permissions-policy"]).toContain("camera=()");
   });
 
+  it("envía una Content-Security-Policy acotada (scripts, conexiones, iframes)", async () => {
+    const rules = await config.headers!();
+    const all = rules.find((r) => r.source === "/:path*")!.headers;
+    const csp = all.find((x) => /^content-security-policy/i.test(x.key))?.value ?? "";
+    const dir = (name: string) => csp.split("; ").find((d) => d.startsWith(name + " ")) ?? "";
+    expect(csp).toBeTruthy();
+    expect(dir("object-src")).toBe("object-src 'none'");
+    expect(dir("base-uri")).toBe("base-uri 'self'");
+    expect(dir("form-action")).toBe("form-action 'self'");
+    expect(dir("frame-ancestors")).toBe("frame-ancestors 'self'");
+    expect(dir("report-uri")).toBe("report-uri /api/csp-report");
+    // Sin comodines: un XSS no puede cargar scripts ni mandar datos a cualquier dominio.
+    for (const any of ["*", "https:", "http:", "data:"]) expect(dir("script-src").split(" ")).not.toContain(any);
+    expect(dir("connect-src").split(" ").slice(1).every((s) => s === "'self'" || /^(https|wss):\/\/[a-z0-9*.-]+$/.test(s))).toBe(true);
+    expect(dir("frame-src")).toBe("frame-src https://challenges.cloudflare.com");
+  });
+
   it("solo carga imágenes remotas por https", () => {
     for (const p of config.images?.remotePatterns ?? []) {
       expect(typeof p === "object" && "protocol" in p ? p.protocol : "https").toBe("https");

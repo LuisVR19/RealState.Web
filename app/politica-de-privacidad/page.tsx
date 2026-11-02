@@ -19,6 +19,7 @@ export default function PrivacidadPage() {
         <li><b>Preferencias de búsqueda</b> (solo con cuenta): tipo de operación y de propiedad, zonas, presupuesto, habitaciones, baños, parqueos, área, amenidades y las notas que usted escriba.</li>
         <li><b>Favoritos:</b> las propiedades que guarda en su cuenta.</li>
         <li><b>Datos técnicos mínimos</b> necesarios para mantener su sesión iniciada y la seguridad del sitio (ver la <a href="/politica-de-cookies">Política de cookies</a>).</li>
+        <li><b>Estadísticas anónimas de uso:</b> totales por día de páginas y propiedades vistas, toques a WhatsApp y a compartir, y búsquedas con filtros. No incluyen IP, identificadores ni nada que permita saber quién es usted, por lo que no son datos personales (detalle en la <a href="/politica-de-cookies">Política de cookies</a>, punto 4).</li>
       </ul>
       <p>No solicitamos datos sensibles (origen racial, salud, religión, orientación sexual, etc.) ni datos de tarjetas o cuentas bancarias a través de este sitio.</p>
 

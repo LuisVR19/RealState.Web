@@ -9,6 +9,7 @@ import { DetailTopBar } from "@/components/detail/DetailTopBar";
 import { Gallery } from "@/components/detail/Gallery";
 import { MortgageCalculator } from "@/components/detail/MortgageCalculator";
 import { PropertyCard } from "@/components/PropertyCard";
+import { TrackView } from "@/components/TrackView";
 import { VisitScheduler } from "@/components/VisitScheduler";
 import { agentResolver, getAgentOrTeam, getPropertyByCode, getPublishedProperties, getSimilarProperties } from "@/lib/data";
 import { amenityIcon, crc, decimal, dots, monthlyPayment, OP_LABEL, pricePeriod, priceSuffix, waProperty } from "@/lib/format";
@@ -83,7 +84,9 @@ async function PropertyDetail({ params }: Params) {
   ];
 
   return (
-    <div className="detail">
+    // data-property: los clics a WhatsApp de esta ficha se cuentan para esta propiedad (SiteTracker).
+    <div className="detail" data-property={p.id}>
+      <TrackView propertyId={p.id} />
       <DetailTopBar property={p} crumb={`Cartago › ${p.canton} › ${p.zone} · ${p.code}`} />
       <div className="detail-inner">
         <Gallery images={p.images} title={p.title} />

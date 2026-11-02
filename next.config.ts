@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
+import { buildCsp, CSP_HEADER } from "./lib/csp";
 
 // Cabeceras de seguridad para todas las rutas. El sitio no se incrusta en iframes de terceros.
 const securityHeaders = [
+  { key: CSP_HEADER, value: buildCsp() },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "SAMEORIGIN" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },

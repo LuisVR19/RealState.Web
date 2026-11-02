@@ -31,7 +31,7 @@ export function ShareDialog({ property: p }: { property: PropertySummary }) {
 
   return (
     <div className="dialog-backdrop z-share" onClick={close}>
-      <div className="dialog" onClick={(e) => e.stopPropagation()} style={{ width: "min(460px,100%)", maxHeight: "calc(100dvh - 32px)", overflowY: "auto", gap: 18, padding: 20 }}>
+      <div className="dialog" data-property={p.id} onClick={(e) => e.stopPropagation()} style={{ width: "min(460px,100%)", maxHeight: "calc(100dvh - 32px)", overflowY: "auto", gap: 18, padding: 20 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
           <span className="dialog-title">Compartir propiedad</span>
           <button className="btn btn-secondary btn-icon" onClick={close} aria-label="Cerrar"><i className="ph ph-x" style={{ fontSize: 16 }} /></button>
@@ -55,7 +55,7 @@ export function ShareDialog({ property: p }: { property: PropertySummary }) {
         </div>
         <div className="share-targets">
           {targets.map((t) => (
-            <a key={t.label} href={t.href} target="_blank" rel="noopener" className="share-target"
+            <a key={t.label} href={t.href} target="_blank" rel="noopener" className="share-target" data-track="share"
               onClick={t.native ? (e) => { if (navigator.share) { e.preventDefault(); navigator.share({ title: p.title, text: desc, url }).catch(() => {}); } } : undefined}>
               <i className={`ph ${t.icon}`} />{t.label}
             </a>

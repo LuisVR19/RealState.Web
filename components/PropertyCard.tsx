@@ -26,7 +26,7 @@ export function PropertyCard({ property: p, agent: a, active, onHover }: Props) 
   const href = propertyPath(p);
 
   return (
-    <div className={`pcard${active ? " is-active" : ""}`} onClick={() => router.push(href)} onMouseEnter={() => onHover?.(p.id)} onMouseLeave={() => onHover?.(null)}>
+    <div className={`pcard${active ? " is-active" : ""}`} data-property={p.id} onClick={() => router.push(href)} onMouseEnter={() => onHover?.(p.id)} onMouseLeave={() => onHover?.(null)}>
       <div className="pcard-media">
         <div className="lighten fill"><img src={p.images[idx]} alt={p.title} loading="lazy" /></div>
         <div className="pcard-tags">

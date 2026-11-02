@@ -9,7 +9,7 @@ export function VisitDialog({ agent, property }: { agent: Agent; property?: Prop
   const { close } = useUI();
   return (
     <div className="dialog-backdrop z-visit" onClick={close}>
-      <div className="dialog" onClick={(e) => e.stopPropagation()} style={{ width: "min(460px,100%)", maxHeight: "calc(100dvh - 32px)", overflowY: "auto", gap: 16, padding: 20 }}>
+      <div className="dialog" data-property={property?.id} onClick={(e) => e.stopPropagation()} style={{ width: "min(460px,100%)", maxHeight: "calc(100dvh - 32px)", overflowY: "auto", gap: 16, padding: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <span className="avatar avatar-44">{agent.initials}</span>
           <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 1 }}>
