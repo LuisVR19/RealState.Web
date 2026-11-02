@@ -1,12 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { isValidPhone, normalizePhone } from "@/lib/format";
 import { PRIVACY_VERSION } from "@/lib/legal";
 import { createClient } from "@/lib/supabase/client";
 import { useUI } from "../ui-provider";
 import { PasswordInput } from "../ui/PasswordInput";
+import { Turnstile, turnstileEnabled, type TurnstileHandle } from "../ui/Turnstile";
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
@@ -16,6 +17,7 @@ function authError(message: string) {
   if (m.includes("invalid login credentials")) return "Correo o contraseña incorrectos.";
   if (m.includes("email not confirmed")) return "Confirma tu correo con el enlace que te enviamos antes de entrar.";
   if (m.includes("rate limit") || m.includes("too many")) return "Demasiados intentos. Espera unos minutos y vuelve a intentarlo.";
+  if (m.includes("captcha")) return "No pudimos verificar que no eres un robot. Intenta de nuevo.";
   if (m.includes("password")) return "La contraseña debe tener al menos 8 caracteres, con letras y números.";
   return "No pudimos completar la operación. Intenta de nuevo.";
 }
@@ -28,6 +30,8 @@ export function AuthDialog({ initialMode }: { initialMode: "login" | "register" 
   const [error, setError] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
   const reg = mode === "register";
+  const captcha = useRef<TurnstileHandle>(null);
+  const [captchaToken, setCaptchaToken] = useState("");
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -45,6 +49,9 @@ export function AuthDialog({ initialMode }: { initialMode: "login" | "register" 
       if (password.length < 8 || !/[a-z]/i.test(password) || !/\d/.test(password)) return setError("La contraseña debe tener al menos 8 caracteres, con letras y números.");
       if (form.get("consent") !== "on") return setError("Para crear la cuenta debes aceptar la política de privacidad y los términos.");
     } else if (!password) return setError("Escribe tu contraseña.");
+    // Supabase Auth valida el token cuando el captcha está activado en el proyecto.
+    const token = captcha.current?.token() || undefined;
+    if (turnstileEnabled && !token) return setError("Espera un momento: estamos verificando que no eres un robot.");
 
     setBusy(true);
     setError(null);
@@ -55,19 +62,24 @@ export function AuthDialog({ initialMode }: { initialMode: "login" | "register" 
           email,
           password,
           // La base (trigger handle_new_auth_user) crea el cliente con estos datos.
-          options: { data: { name, phone: phone || undefined, privacy_version: PRIVACY_VERSION, privacy_accepted_at: new Date().toISOString() }, emailRedirectTo: `${window.location.origin}/auth/callback?next=/para-ti` },
+          options: {
+            data: { name, phone: phone || undefined, privacy_version: PRIVACY_VERSION, privacy_accepted_at: new Date().toISOString() },
+            emailRedirectTo: `${window.location.origin}/auth/callback?next=/para-ti`,
+            captchaToken: token,
+          },
         });
         if (error) return setError(authError(error.message));
         if (!data.session) return setSentTo(email); // Confirmación por correo activada.
         router.refresh();
         open({ type: "prefs", welcome: true });
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({ email, password, options: { captchaToken: token } });
         if (error) return setError(authError(error.message));
         close();
         router.refresh();
       }
     } finally {
+      captcha.current?.reset(); // El token es de un solo uso.
       setBusy(false);
     }
   };
@@ -114,8 +126,9 @@ export function AuthDialog({ initialMode }: { initialMode: "login" | "register" 
             <span>He leído y acepto la <a href="/politica-de-privacidad" target="_blank" rel="noopener">política de privacidad</a> y los <a href="/terminos-y-condiciones" target="_blank" rel="noopener">términos y condiciones</a>. Autorizo el uso de mis datos para recibir recomendaciones de propiedades y ser contactado por un asesor.</span>
           </label>
         )}
+        <Turnstile ref={captcha} action="auth" onChange={setCaptchaToken} />
         {error && <div role="alert" style={{ fontSize: 13, color: "#8a2f24" }}>{error}</div>}
-        <button type="submit" className="btn btn-primary" disabled={busy} style={{ height: 44, fontSize: 15 }}>{busy ? "Un momento…" : reg ? "Crear cuenta" : "Entrar"}</button>
+        <button type="submit" className="btn btn-primary" disabled={busy || (turnstileEnabled && !captchaToken)} style={{ height: 44, fontSize: 15 }}>{busy ? "Un momento…" : reg ? "Crear cuenta" : "Entrar"}</button>
       </form>
     </div>
   );

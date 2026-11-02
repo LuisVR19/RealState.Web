@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { requestVisit } from "@/app/actions";
+import { Turnstile, turnstileEnabled, type TurnstileHandle } from "./ui/Turnstile";
 import { COMPANY } from "@/lib/legal";
 import { isValidPhone, nextVisitDays, normalizePhone, VISIT_TIMES, waLink } from "@/lib/format";
 import type { Agent, PropertySummary, VisitMode } from "@/lib/types";
@@ -27,10 +28,13 @@ export function VisitScheduler({ agent, property, radioName }: { agent: Agent; p
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const captcha = useRef<TurnstileHandle>(null);
+  const [captchaToken, setCaptchaToken] = useState("");
 
   const filled = !!(days.length && time && name.trim().length >= 2 && isValidPhone(normalizePhone(phone)));
-  const ready = filled && consent;
-  const hint = error ?? (!time ? "Elige una hora para continuar" : !filled ? "Completa tu nombre y un WhatsApp de 8 dígitos" : !consent ? "Acepta la política de privacidad para enviar" : "Listo para enviar");
+  const verified = !turnstileEnabled || captchaToken !== "";
+  const ready = filled && consent && verified;
+  const hint = error ?? (!time ? "Elige una hora para continuar" : !filled ? "Completa tu nombre y un WhatsApp de 8 dígitos" : !consent ? "Acepta la política de privacidad para enviar" : !verified ? "Verificando que no eres un robot…" : "Listo para enviar");
   const d = days[day] ?? { iso: "", dow: "", num: 0, mon: "" };
 
   const submit = () => {
@@ -46,7 +50,9 @@ export function VisitScheduler({ agent, property, radioName }: { agent: Agent; p
         name,
         phone,
         consent,
+        captchaToken: captcha.current?.token() ?? "",
       });
+      captcha.current?.reset(); // El token es de un solo uso.
       if (res.ok) setDone(true);
       else setError(res.error);
     });
@@ -111,6 +117,7 @@ export function VisitScheduler({ agent, property, radioName }: { agent: Agent; p
         <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
         <span>Autorizo a {COMPANY.tradeName} a usar mi nombre y WhatsApp para coordinar esta visita, según la <a href="/politica-de-privacidad" target="_blank" rel="noopener">política de privacidad</a>.</span>
       </label>
+      {filled && consent && <Turnstile ref={captcha} action="visit" onChange={setCaptchaToken} />}
       <button className="btn btn-primary" disabled={!ready || pending} onClick={submit} style={{ width: "100%", height: 42, fontSize: 15 }}>
         <i className="ph ph-calendar-check" style={{ fontSize: 17 }} />{pending ? "Enviando…" : "Solicitar visita"}
       </button>

@@ -23,6 +23,16 @@
 		// Optimización de imágenes de next/image: https://opennext.js.org/cloudflare/howtos/image
 		"binding": "IMAGES"
 	},
+	// Límite de frecuencia por IP para las solicitudes de visita (lib/abuse.ts). Workers Rate Limiting:
+	// period solo admite 10 o 60 s y el conteo es por ubicación de Cloudflare (aproximado); el límite
+	// exacto por teléfono lo aplica la base en request_visit. namespace_id es único por cuenta.
+	"ratelimits": [
+		{
+			"name": "VISIT_LIMITER",
+			"namespace_id": "1001",
+			"simple": { "limit": 5, "period": 60 }
+		}
+	],
 	// --- Caché (ver open-next.config.ts y docs/DEPLOY-CLOUDFLARE.md) ---
 	// Caché incremental en KV (gratis, sin tarjeta). Crea el namespace con
 	// `npx wrangler kv namespace create isf-web-cache` y pega aquí el id.

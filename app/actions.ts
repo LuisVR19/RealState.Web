@@ -1,7 +1,8 @@
 "use server";
 
-// Escrituras públicas del sitio. Pasan por el servidor para validar antes de tocar la base
-// y para tener un único punto donde agregar captcha / límite de frecuencia (ver README).
+// Escrituras públicas del sitio. Pasan por el servidor para validar, limitar la frecuencia por IP
+// y verificar el captcha (Turnstile) antes de tocar la base. La base vuelve a limitar por teléfono.
+import { clientIp, rateLimit, verifyTurnstile } from "@/lib/abuse";
 import { isUuid } from "@/lib/data";
 import { isValidPhone, normalizePhone, VISIT_TIMES } from "@/lib/format";
 import { PRIVACY_VERSION } from "@/lib/legal";
@@ -18,6 +19,8 @@ export interface VisitRequest {
   phone: string;
   /** Aceptó la política de privacidad (Ley 8968, art. 5): obligatorio para enviar. */
   consent: boolean;
+  /** Token de Cloudflare Turnstile (components/ui/Turnstile.tsx). */
+  captchaToken: string;
 }
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
@@ -39,6 +42,14 @@ export async function requestVisit(input: VisitRequest): Promise<ActionResult> {
   if (name.length < 2) return { ok: false, error: "Escribe tu nombre." };
   if (!isValidPhone(phone)) return { ok: false, error: "El WhatsApp debe tener 8 dígitos de Costa Rica." };
   if (input.consent !== true) return { ok: false, error: "Debes aceptar la política de privacidad para enviar la solicitud." };
+
+  const ip = await clientIp();
+  if (!(await rateLimit("VISIT_LIMITER", `visit:${ip}`))) {
+    return { ok: false, error: "Hiciste varias solicitudes seguidas. Espera un minuto e intenta de nuevo." };
+  }
+  if (!(await verifyTurnstile(input.captchaToken, ip, "visit"))) {
+    return { ok: false, error: "No pudimos verificar que no eres un robot. Intenta de nuevo o recarga la página." };
+  }
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("request_visit", {
