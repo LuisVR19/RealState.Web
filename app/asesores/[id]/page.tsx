@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { Suspense } from "react";
 import { OpenDialogButton } from "@/components/OpenDialogButton";
 import { PropertyCard } from "@/components/PropertyCard";
@@ -9,13 +10,14 @@ import { waLink } from "@/lib/format";
 
 type Params = Pick<PageProps<"/asesores/[id]">, "params">;
 
-/** Perfiles prerenderizados al compilar; un asesor nuevo se genera en su primera visita. */
+/** Perfiles conocidos al compilar (solo el armazón de la página; el contenido se arma en cada visita). */
 export async function generateStaticParams() {
   const agents = await getAgents();
   return agents.length ? agents.map((a) => ({ id: a.id })) : [{ id: "00000000-0000-4000-8000-000000000000" }];
 }
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
+  await connection();
   const a = await getAgent((await params).id);
   return a ? { title: `${a.name} · Thomas Mata S.A.`, description: a.bio } : {};
 }
@@ -28,7 +30,11 @@ export default function AgentPage({ params }: Params) {
   );
 }
 
+// Se arma en cada visita (connection) con lecturas cacheadas por `use cache` (KV + D1, invalidadas por
+// etiqueta). No se deja como página prerenderizada entera: en Cloudflare la regeneración en segundo plano
+// de OpenNext (cola en Durable Object) se queda colgada y la página seguía sirviendo los datos del build.
 async function AgentProfile({ params }: Params) {
+  await connection();
   const a = await getAgent((await params).id);
   if (!a) notFound();
   const listings = await getPropertiesByAgent(a.id);

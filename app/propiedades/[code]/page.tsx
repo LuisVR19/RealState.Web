@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { Suspense } from "react";
 import { DetailMap } from "@/components/DetailMap";
 import { BottomBar } from "@/components/detail/BottomBar";
@@ -15,7 +16,7 @@ import { agentPath, propertyPath } from "@/lib/routes";
 
 type Params = Pick<PageProps<"/propiedades/[code]">, "params">;
 
-/** Se prerenderizan las publicadas al compilar; las nuevas se generan en la primera visita (ISR). */
+/** Códigos conocidos al compilar (solo el armazón de la página; el contenido se arma en cada visita). */
 export async function generateStaticParams() {
   const { items } = await getPublishedProperties();
   return items.length ? items.map((p) => ({ code: p.code })) : [{ code: "ISF-0000" }];
@@ -23,6 +24,7 @@ export async function generateStaticParams() {
 
 /** Vista previa al compartir el enlace (WhatsApp, Facebook…): foto, título y precio de la propiedad. */
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
+  await connection();
   const p = await getPropertyByCode((await params).code);
   if (!p) return { title: "Propiedad no disponible · Thomas Mata S.A." };
   const title = `${p.title} | Thomas Mata S.A.`;
@@ -42,7 +44,11 @@ export default function PropertyPage({ params }: Params) {
   );
 }
 
+// Se arma en cada visita (connection) con lecturas cacheadas por `use cache` (KV + D1, invalidadas por
+// etiqueta). No se deja como página prerenderizada entera: en Cloudflare la regeneración en segundo plano
+// de OpenNext (cola en Durable Object) se queda colgada y la página seguía sirviendo los datos del build.
 async function PropertyDetail({ params }: Params) {
+  await connection();
   const p = await getPropertyByCode((await params).code);
   if (!p) notFound();
   const [a, similar, agentOf] = await Promise.all([getAgentOrTeam(p.agentId), getSimilarProperties(p), agentResolver()]);

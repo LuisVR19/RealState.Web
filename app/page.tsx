@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { connection } from "next/server";
+import { Suspense } from "react";
 import { HomeSearch } from "@/components/HomeSearch";
 import { OpenDialogButton } from "@/components/OpenDialogButton";
 import { PropertyCard } from "@/components/PropertyCard";
@@ -14,8 +16,19 @@ const STEPS = [
   ["04", "Oferta, crédito y firma", "Negociamos por ti, te conectamos con bancos y coordinamos con el notario."],
 ];
 
-export default async function HomePage() {
-  // Todo sale de lecturas cacheadas: la portada se prerenderiza y se sirve igual a todos.
+// Se arma en cada visita (connection) con lecturas cacheadas por `use cache` (KV + D1, invalidadas por
+// etiqueta). No se deja como página prerenderizada entera: en Cloudflare la regeneración en segundo plano
+// de OpenNext (cola en Durable Object) se queda colgada y la página seguía sirviendo los datos del build.
+export default function HomePage() {
+  return (
+    <Suspense fallback={<main className="page-scroll" />}>
+      <HomeContent />
+    </Suspense>
+  );
+}
+
+async function HomeContent() {
+  await connection();
   const [{ items: props }, hero, zones, team, agentOf, contact] = await Promise.all([getPublishedProperties(), getFeaturedProperty(), getFeaturedZones(), getAgents(), agentResolver(), getSiteContact()]);
   const teamContact = contact.team;
   const teamWa = waProperty(teamContact);
