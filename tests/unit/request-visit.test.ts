@@ -8,7 +8,7 @@ const { requestVisit } = await import("@/app/actions");
 type Input = Parameters<typeof requestVisit>[0];
 
 const PROPERTY = "d0000000-0000-4000-8000-000000000001";
-const valid: Input = { propertyId: PROPERTY, agentId: null, date: "2099-01-15", time: "10:00", mode: "Presencial", name: "Ana Prueba", phone: "+506 8888-7777" };
+const valid: Input = { propertyId: PROPERTY, agentId: null, date: "2099-01-15", time: "10:00", mode: "Presencial", name: "Ana Prueba", phone: "+506 8888-7777", consent: true };
 
 beforeEach(() => {
   rpc.mockReset().mockResolvedValue({ error: null });
@@ -27,6 +27,7 @@ describe("validación (no llega a la base)", () => {
     ["nombre de 1 letra", { name: "A" }],
     ["teléfono corto", { phone: "1234" }],
     ["teléfono que no es de CR", { phone: "1234 5678" }],
+    ["sin aceptar la política de privacidad", { consent: false }],
   ])("rechaza %s", async (_, patch) => {
     const res = await requestVisit({ ...valid, ...patch });
     expect(res.ok).toBe(false);
@@ -38,7 +39,7 @@ describe("envío", () => {
   it("normaliza el teléfono y recorta el nombre a 120", async () => {
     const res = await requestVisit({ ...valid, name: "  " + "N".repeat(300) + "  " });
     expect(res).toEqual({ ok: true });
-    expect(rpc).toHaveBeenCalledWith("request_visit", expect.objectContaining({ p_phone: "88887777", p_name: "N".repeat(120), p_property_id: PROPERTY, p_date: "2099-01-15", p_time: "10:00" }));
+    expect(rpc).toHaveBeenCalledWith("request_visit", expect.objectContaining({ p_phone: "88887777", p_name: "N".repeat(120), p_property_id: PROPERTY, p_date: "2099-01-15", p_time: "10:00", p_privacy_version: expect.any(String) }));
   });
 
   it("reunión sin propiedad con un asesor concreto", async () => {

@@ -862,6 +862,7 @@ export type Database = {
           p_name?: string
           p_notes?: string
           p_phone?: string
+          p_privacy_version?: string
           p_property_id: string
           p_time: string
         }

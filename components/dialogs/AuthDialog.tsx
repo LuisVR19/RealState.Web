@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { isValidPhone, normalizePhone } from "@/lib/format";
+import { PRIVACY_VERSION } from "@/lib/legal";
 import { createClient } from "@/lib/supabase/client";
 import { useUI } from "../ui-provider";
 import { PasswordInput } from "../ui/PasswordInput";
@@ -42,6 +43,7 @@ export function AuthDialog({ initialMode }: { initialMode: "login" | "register" 
       if (name.length < 2) return setError("Escribe tu nombre completo.");
       if (phone && !isValidPhone(phone)) return setError("El WhatsApp debe tener 8 dígitos de Costa Rica.");
       if (password.length < 8 || !/[a-z]/i.test(password) || !/\d/.test(password)) return setError("La contraseña debe tener al menos 8 caracteres, con letras y números.");
+      if (form.get("consent") !== "on") return setError("Para crear la cuenta debes aceptar la política de privacidad y los términos.");
     } else if (!password) return setError("Escribe tu contraseña.");
 
     setBusy(true);
@@ -53,7 +55,7 @@ export function AuthDialog({ initialMode }: { initialMode: "login" | "register" 
           email,
           password,
           // La base (trigger handle_new_auth_user) crea el cliente con estos datos.
-          options: { data: { name, phone: phone || undefined }, emailRedirectTo: `${window.location.origin}/auth/callback?next=/para-ti` },
+          options: { data: { name, phone: phone || undefined, privacy_version: PRIVACY_VERSION, privacy_accepted_at: new Date().toISOString() }, emailRedirectTo: `${window.location.origin}/auth/callback?next=/para-ti` },
         });
         if (error) return setError(authError(error.message));
         if (!data.session) return setSentTo(email); // Confirmación por correo activada.
@@ -106,6 +108,12 @@ export function AuthDialog({ initialMode }: { initialMode: "login" | "register" 
         )}
         <div className="field"><label htmlFor="auth-email">Correo</label><input id="auth-email" className="input input-42" name="email" type="email" autoComplete="email" placeholder="tu@correo.com" maxLength={254} required /></div>
         <div className="field"><label htmlFor="auth-pass">Contraseña</label><PasswordInput id="auth-pass" className="input input-42" name="password" autoComplete={reg ? "new-password" : "current-password"} placeholder={reg ? "Mínimo 8 caracteres, con letras y números" : "••••••••"} maxLength={72} required /></div>
+        {reg && (
+          <label className="consent">
+            <input type="checkbox" name="consent" required />
+            <span>He leído y acepto la <a href="/politica-de-privacidad" target="_blank" rel="noopener">política de privacidad</a> y los <a href="/terminos-y-condiciones" target="_blank" rel="noopener">términos y condiciones</a>. Autorizo el uso de mis datos para recibir recomendaciones de propiedades y ser contactado por un asesor.</span>
+          </label>
+        )}
         {error && <div role="alert" style={{ fontSize: 13, color: "#8a2f24" }}>{error}</div>}
         <button type="submit" className="btn btn-primary" disabled={busy} style={{ height: 44, fontSize: 15 }}>{busy ? "Un momento…" : reg ? "Crear cuenta" : "Entrar"}</button>
       </form>

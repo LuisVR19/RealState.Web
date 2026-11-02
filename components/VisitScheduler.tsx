@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { requestVisit } from "@/app/actions";
+import { COMPANY } from "@/lib/legal";
 import { isValidPhone, nextVisitDays, normalizePhone, VISIT_TIMES, waLink } from "@/lib/format";
 import type { Agent, PropertySummary, VisitMode } from "@/lib/types";
 import { useUI } from "./ui-provider";
@@ -22,12 +23,14 @@ export function VisitScheduler({ agent, property, radioName }: { agent: Agent; p
   const [time, setTime] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [consent, setConsent] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const ready = !!(days.length && time && name.trim().length >= 2 && isValidPhone(normalizePhone(phone)));
-  const hint = error ?? (!time ? "Elige una hora para continuar" : !ready ? "Completa tu nombre y un WhatsApp de 8 dígitos" : "Listo para enviar");
+  const filled = !!(days.length && time && name.trim().length >= 2 && isValidPhone(normalizePhone(phone)));
+  const ready = filled && consent;
+  const hint = error ?? (!time ? "Elige una hora para continuar" : !filled ? "Completa tu nombre y un WhatsApp de 8 dígitos" : !consent ? "Acepta la política de privacidad para enviar" : "Listo para enviar");
   const d = days[day] ?? { iso: "", dow: "", num: 0, mon: "" };
 
   const submit = () => {
@@ -42,6 +45,7 @@ export function VisitScheduler({ agent, property, radioName }: { agent: Agent; p
         mode,
         name,
         phone,
+        consent,
       });
       if (res.ok) setDone(true);
       else setError(res.error);
@@ -103,6 +107,10 @@ export function VisitScheduler({ agent, property, radioName }: { agent: Agent; p
         <div className="field"><label>Nombre</label><input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Tu nombre" maxLength={120} autoComplete="name" /></div>
         <div className="field"><label>WhatsApp</label><input className="input" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="8888 8888" maxLength={16} autoComplete="tel" /></div>
       </div>
+      <label className="consent">
+        <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+        <span>Autorizo a {COMPANY.tradeName} a usar mi nombre y WhatsApp para coordinar esta visita, según la <a href="/politica-de-privacidad" target="_blank" rel="noopener">política de privacidad</a>.</span>
+      </label>
       <button className="btn btn-primary" disabled={!ready || pending} onClick={submit} style={{ width: "100%", height: 42, fontSize: 15 }}>
         <i className="ph ph-calendar-check" style={{ fontSize: 17 }} />{pending ? "Enviando…" : "Solicitar visita"}
       </button>

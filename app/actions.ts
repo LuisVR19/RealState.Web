@@ -4,6 +4,7 @@
 // y para tener un único punto donde agregar captcha / límite de frecuencia (ver README).
 import { isUuid } from "@/lib/data";
 import { isValidPhone, normalizePhone, VISIT_TIMES } from "@/lib/format";
+import { PRIVACY_VERSION } from "@/lib/legal";
 import { createClient } from "@/lib/supabase/server";
 import type { VisitMode } from "@/lib/types";
 
@@ -15,6 +16,8 @@ export interface VisitRequest {
   mode: VisitMode;
   name: string;
   phone: string;
+  /** Aceptó la política de privacidad (Ley 8968, art. 5): obligatorio para enviar. */
+  consent: boolean;
 }
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
@@ -35,6 +38,7 @@ export async function requestVisit(input: VisitRequest): Promise<ActionResult> {
   if (input.mode !== "Presencial" && input.mode !== "Videollamada") return { ok: false, error: "Modalidad inválida." };
   if (name.length < 2) return { ok: false, error: "Escribe tu nombre." };
   if (!isValidPhone(phone)) return { ok: false, error: "El WhatsApp debe tener 8 dígitos de Costa Rica." };
+  if (input.consent !== true) return { ok: false, error: "Debes aceptar la política de privacidad para enviar la solicitud." };
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("request_visit", {
@@ -45,6 +49,7 @@ export async function requestVisit(input: VisitRequest): Promise<ActionResult> {
     p_mode: input.mode,
     p_name: name,
     p_phone: phone,
+    p_privacy_version: PRIVACY_VERSION,
   });
 
   if (error) {
