@@ -9,24 +9,31 @@ import { clientIp, rateLimit } from "@/lib/abuse";
 import { createPublicClient } from "@/lib/supabase/public";
 
 const EVENTS = new Set(["page_view", "property_view", "whatsapp_click", "share_click", "search"]);
+/** Eventos de publicidad del cliente → nombre que espera track_ad_events. */
+const AD_EVENTS: Record<string, string> = { ad_impression: "impression", ad_click: "click", ad_dismiss: "dismiss" };
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const BOT_UA = /bot|crawl|spider|slurp|headless|lighthouse|pagespeed|preview|facebookexternalhit|python|curl|wget/i;
 const MAX_BYTES = 4096;
 const MAX_EVENTS = 20;
 
 type Event = { e: string; p?: string };
+type AdEvent = { a: string; e: string };
 
 const done = () => new NextResponse(null, { status: 204 });
 
-/** Eventos válidos del cuerpo (los demás se descartan). */
-function parseEvents(body: unknown): Event[] {
-  if (!Array.isArray(body)) return [];
-  return body.slice(0, MAX_EVENTS).flatMap((x): Event[] => {
-    if (!x || typeof x !== "object") return [];
-    const { e, p } = x as { e?: unknown; p?: unknown };
-    if (typeof e !== "string" || !EVENTS.has(e)) return [];
-    return typeof p === "string" && UUID_RE.test(p) ? [{ e, p }] : [{ e }];
-  });
+/** Eventos válidos del cuerpo, separados en uso del sitio y publicidad (los demás se descartan). */
+function parseEvents(body: unknown): { site: Event[]; ads: AdEvent[] } {
+  const site: Event[] = [];
+  const ads: AdEvent[] = [];
+  if (!Array.isArray(body)) return { site, ads };
+  for (const x of body.slice(0, MAX_EVENTS)) {
+    if (!x || typeof x !== "object") continue;
+    const { e, p, a } = x as { e?: unknown; p?: unknown; a?: unknown };
+    if (typeof e !== "string") continue;
+    if (EVENTS.has(e)) site.push(typeof p === "string" && UUID_RE.test(p) ? { e, p } : { e });
+    else if (Object.hasOwn(AD_EVENTS, e) && typeof a === "string" && UUID_RE.test(a)) ads.push({ a, e: AD_EVENTS[e] });
+  }
+  return { site, ads };
 }
 
 function sameOrigin(request: NextRequest) {
@@ -45,16 +52,21 @@ export async function POST(request: NextRequest) {
   if (BOT_UA.test(request.headers.get("user-agent") ?? "") || !sameOrigin(request)) return done();
   if (Number(request.headers.get("content-length") ?? 0) > MAX_BYTES) return done();
 
-  let events: Event[];
+  let events: ReturnType<typeof parseEvents>;
   try {
     events = parseEvents(JSON.parse((await request.text()).slice(0, MAX_BYTES)));
   } catch {
     return done();
   }
-  if (!events.length) return done();
+  if (!events.site.length && !events.ads.length) return done();
   if (!(await rateLimit("TRACK_LIMITER", `track:${await clientIp()}`))) return done();
 
-  const { error } = await createPublicClient().rpc("track_site_events", { p_secret: secret, p_events: events });
-  if (error) console.warn("[track] no se pudo registrar:", error.code, error.message);
+  const db = createPublicClient();
+  const [site, ads] = await Promise.all([
+    events.site.length ? db.rpc("track_site_events", { p_secret: secret, p_events: events.site }) : null,
+    events.ads.length ? db.rpc("track_ad_events", { p_secret: secret, p_events: events.ads }) : null,
+  ]);
+  if (site?.error) console.warn("[track] no se pudo registrar:", site.error.code, site.error.message);
+  if (ads?.error) console.warn("[track] no se pudo registrar la publicidad:", ads.error.code, ads.error.message);
   return done();
 }

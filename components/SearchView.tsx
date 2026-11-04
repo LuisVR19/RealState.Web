@@ -2,16 +2,19 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Fragment, useEffect, useRef, useState, useTransition } from "react";
+import { Fragment, useEffect, useRef, useState, useTransition, type MouseEvent } from "react";
 import type { Map as LeafletMap } from "leaflet";
 import { amenityIcon, CANTONS, crc, dots, matchingPreset, OP_LABEL, pricePresetsFor, priceSuffix, TYPES, TYPE_ICON, TYPE_PLURAL, waProperty } from "@/lib/format";
 import { propertyPath, searchPath } from "@/lib/routes";
+import type { Ad } from "@/lib/ads";
 import { activeFilterCount, PAGE_SIZE } from "@/lib/search-params";
 import { track } from "@/lib/track";
 import type { Agent, Operation, PropertySummary, SearchFilters, SortOrder } from "@/lib/types";
 import { Chip, toggle } from "./Chip";
+import { SponsoredCard } from "./Ads";
 import { PropertyCard } from "./PropertyCard";
 import { MAP_ATTRIBUTION, SearchMap } from "./SearchMap";
+import { PropertyGridSkeleton } from "./Skeletons";
 import { useUI } from "./ui-provider";
 
 type Op = Operation | "Todas";
@@ -24,6 +27,8 @@ interface Props {
   filters: SearchFilters;
   /** Chips de filtros activos; cada uno enlaza a la búsqueda sin ese filtro. */
   activeChips: { label: string; href: string }[];
+  /** Tarjeta patrocinada de esta página (una como máximo), o null. */
+  ad?: Ad | null;
 }
 
 const toAmount = (s: string) => {
@@ -35,7 +40,7 @@ const toAmount = (s: string) => {
  * Listado con mapa. Los filtros viven en la URL: cada cambio navega a la nueva búsqueda
  * (router.replace) y el servidor la resuelve con search_properties.
  */
-export function SearchView({ properties, total, agents, filters: f, activeChips }: Props) {
+export function SearchView({ properties, total, agents, filters: f, activeChips, ad = null }: Props) {
   const { open, contact } = useUI();
   const TEAM_CONTACT = contact.team;
   const router = useRouter();
@@ -69,6 +74,14 @@ export function SearchView({ properties, total, agents, filters: f, activeChips 
   const apply = (patch: Partial<SearchFilters>) =>
     startTransition(() => router.replace(searchPath({ ...f, ...patch, page: 1 }), { scroll: false }));
 
+  /** Navegación de un <Link> dentro de la misma transición, para que también muestre los skeletons.
+   *  Ctrl/Cmd/clic medio siguen abriendo en otra pestaña como un enlace normal. */
+  const viaTransition = (href: string, replace = true) => (e: MouseEvent<HTMLAnchorElement>) => {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    startTransition(() => (replace ? router.replace(href, { scroll: false }) : router.push(href)));
+  };
+
   const agentOf = (id: string) => agents[id] ?? TEAM_CONTACT;
   const n = properties.length;
   const sel = selId ? properties.find((p) => p.id === selId) : null;
@@ -76,6 +89,8 @@ export function SearchView({ properties, total, agents, filters: f, activeChips 
   const presets = pricePresetsFor(f.operation);
   const preset = matchingPreset(f.operation, f.priceMin, f.priceMax);
   const pages = Math.ceil(total / PAGE_SIZE);
+  // Una sola tarjeta patrocinada por página, al final de los resultados; rota con el número de página.
+  const sponsored = n > 0 ? ad : null;
   const filterCount = activeFilterCount(f);
 
   const opChips = (["Todas", "Venta", "Alquiler", "Vacacional", "Preventa"] as Op[]).map((k) => (
@@ -162,7 +177,7 @@ export function SearchView({ properties, total, agents, filters: f, activeChips 
       </div>
 
       <div className="search-body">
-        <div className={`results${mView === "map" ? " is-hidden-mobile" : ""}`} style={{ opacity: pending ? 0.6 : 1, transition: "opacity .15s" }}>
+        <div className={`results${mView === "map" ? " is-hidden-mobile" : ""}`}>
           <div className="section-head">
             <div>
               <h1 style={{ fontSize: 22, margin: "0 0 2px" }}>{total} {total === 1 ? "propiedad" : "propiedades"}</h1>
@@ -181,12 +196,13 @@ export function SearchView({ properties, total, agents, filters: f, activeChips 
           {activeChips.length > 0 && (
             <div className="chip-row" style={{ alignItems: "center" }}>
               {activeChips.map((c) => (
-                <Link key={c.label} href={c.href} replace scroll={false} className="tag tag-accent active-chip">{c.label}<i className="ph ph-x" style={{ fontSize: 11 }} /></Link>
+                <Link key={c.label} href={c.href} replace scroll={false} onClick={viaTransition(c.href)} className="tag tag-accent active-chip">{c.label}<i className="ph ph-x" style={{ fontSize: 11 }} /></Link>
               ))}
-              <Link href={pathname} replace className="btn btn-ghost" style={{ fontSize: 12 }}>Limpiar todo</Link>
+              <Link href={pathname} replace onClick={viaTransition(pathname)} className="btn btn-ghost" style={{ fontSize: 12 }}>Limpiar todo</Link>
             </div>
           )}
-          <div className="grid-cards-280">{properties.slice(0, 4).map(card)}</div>
+          {/* Mientras llega la nueva búsqueda (filtros, orden, página): skeletons en lugar de tarjetas viejas. */}
+          {pending ? <PropertyGridSkeleton count={Math.min(Math.max(n, 1), 4)} className="grid-cards-280" /> : <div className="grid-cards-280">{properties.slice(0, 4).map(card)}</div>}
           {n > 0 && (
             <div className="help-banner">
               <div style={{ flex: "1 1 280px", display: "flex", flexDirection: "column", gap: 4 }}>
@@ -199,15 +215,15 @@ export function SearchView({ properties, total, agents, filters: f, activeChips 
               </div>
             </div>
           )}
-          <div className="grid-cards-280">{properties.slice(4).map(card)}</div>
+          {pending ? n > 4 && <PropertyGridSkeleton count={n - 4} className="grid-cards-280" /> : (n > 4 || sponsored) && <div className="grid-cards-280">{properties.slice(4).map(card)}{sponsored && <SponsoredCard ad={sponsored} />}</div>}
           {pages > 1 && (
             <nav aria-label="Páginas" style={{ display: "flex", gap: 8, justifyContent: "center", alignItems: "center", flexWrap: "wrap" }}>
-              {f.page > 1 && <Link href={pageHref(f.page - 1)} className="btn btn-secondary"><i className="ph ph-arrow-left" />Anterior</Link>}
+              {f.page > 1 && <Link href={pageHref(f.page - 1)} onClick={viaTransition(pageHref(f.page - 1), false)} className="btn btn-secondary"><i className="ph ph-arrow-left" />Anterior</Link>}
               <span className="muted-14">Página {f.page} de {pages}</span>
-              {f.page < pages && <Link href={pageHref(f.page + 1)} className="btn btn-secondary">Siguiente<i className="ph ph-arrow-right" /></Link>}
+              {f.page < pages && <Link href={pageHref(f.page + 1)} onClick={viaTransition(pageHref(f.page + 1), false)} className="btn btn-secondary">Siguiente<i className="ph ph-arrow-right" /></Link>}
             </nav>
           )}
-          {n === 0 && (
+          {n === 0 && !pending && (
             <div className="empty-state">
               <i className={`ph ${f.saved ? "ph-heart" : "ph-magnifying-glass"}`} style={{ fontSize: 30, color: "var(--color-neutral-500)" }} />
               <span style={{ fontSize: 18, fontWeight: 500 }}>{f.saved ? "Todavía no has guardado propiedades" : "No hay propiedades con estos filtros"}</span>

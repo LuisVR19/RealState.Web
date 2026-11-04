@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
+import { AdBanner } from "@/components/AdBanner";
 import { HomeSearch } from "@/components/HomeSearch";
 import { OpenDialogButton } from "@/components/OpenDialogButton";
 import { PropertyCard } from "@/components/PropertyCard";
 import { SiteFooter } from "@/components/SiteFooter";
-import { agentResolver, getAgents, getFeaturedProperty, getFeaturedZones, getPublishedProperties, getSiteContact } from "@/lib/data";
+import { HomeSkeleton } from "@/components/Skeletons";
+import { pickAd } from "@/lib/ads";
+import { agentResolver, getActiveAds, getAgents, getFeaturedProperty, getFeaturedZones, getPublishedProperties, getSiteContact } from "@/lib/data";
 import { crc, TYPES, TYPE_ICON, TYPE_PLURAL, waProperty } from "@/lib/format";
 import { agentPath, propertyPath, searchPath } from "@/lib/routes";
 
@@ -21,7 +24,7 @@ const STEPS = [
 // de OpenNext (cola en Durable Object) se queda colgada y la página seguía sirviendo los datos del build.
 export default function HomePage() {
   return (
-    <Suspense fallback={<main className="page-scroll" />}>
+    <Suspense fallback={<HomeSkeleton />}>
       <HomeContent />
     </Suspense>
   );
@@ -29,9 +32,10 @@ export default function HomePage() {
 
 async function HomeContent() {
   await connection();
-  const [{ items: props }, hero, zones, team, agentOf, contact] = await Promise.all([getPublishedProperties(), getFeaturedProperty(), getFeaturedZones(), getAgents(), agentResolver(), getSiteContact()]);
+  const [{ items: props }, hero, zones, team, agentOf, contact, banners] = await Promise.all([getPublishedProperties(), getFeaturedProperty(), getFeaturedZones(), getAgents(), agentResolver(), getSiteContact(), getActiveAds("home_banner")]);
   const teamContact = contact.team;
   const teamWa = waProperty(teamContact);
+  const ad = pickAd(banners);
   const recent = props.slice(0, 4); // ya vienen de la más reciente a la más antigua
 
   return (
@@ -102,6 +106,8 @@ async function HomeContent() {
             })}
           </div>
         </section>
+
+        {ad && <AdBanner ad={ad} />}
 
         <section className="cta-band">
           <div style={{ maxWidth: 620 }}>

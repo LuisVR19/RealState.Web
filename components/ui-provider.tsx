@@ -6,7 +6,7 @@
 // RLS limitando cada consulta a las filas del propio cliente.
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Agent, AmenityOption, PropertySummary, SiteContact } from "@/lib/types";
 import { AuthDialog } from "./dialogs/AuthDialog";
@@ -52,10 +52,21 @@ interface UIContextValue {
 
 const UIContext = createContext<UIContextValue | null>(null);
 
-export function useUI() {
+const NO_FAVORITES: ReadonlySet<string> = new Set();
+const noSubscribe = () => () => {};
+
+export function useUI(): UIContextValue {
   const ctx = useContext(UIContext);
   if (!ctx) throw new Error("useUI debe usarse dentro de <UIProvider>");
-  return ctx;
+  // Mientras un componente se hidrata, React usa el valor "de servidor" (false); al terminar lo vuelve
+  // a pintar con el de cliente (true). Los componentes que se montan después reciben true de inmediato.
+  const hydrated = useSyncExternalStore(noSubscribe, () => true, () => false);
+  // Lo personal (sesión, favoritos) se lee en el navegador y puede llegar ANTES de que se hidrate un
+  // <Suspense> del layout o de la página. Si ese componente se hidratara con la sesión ya leída, su HTML
+  // no coincidiría con el del servidor: error de hidratación y, en desarrollo, recarga completa en bucle.
+  // Por eso, durante la hidratación se entrega exactamente lo que vio el servidor.
+  if (hydrated) return ctx;
+  return { ...ctx, account: undefined, favorites: NO_FAVORITES, matchCount: 0 };
 }
 
 export function UIProvider({ children, totalProperties, amenities, contact }: { children: ReactNode; totalProperties: number; amenities: AmenityOption[]; contact: SiteContact }) {

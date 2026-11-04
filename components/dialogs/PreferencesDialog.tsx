@@ -6,6 +6,7 @@ import { CANTONS, dots, OP_LABEL, TYPES, TYPE_PLURAL } from "@/lib/format";
 import { createClient } from "@/lib/supabase/client";
 import type { Amenity, Canton, Operation, PropertyType } from "@/lib/types";
 import { Chip, ChipGroup, toggle } from "../Chip";
+import { PreferencesSkeleton } from "../Skeletons";
 import { useUI } from "../ui-provider";
 
 type Op = Operation | "Todas";
@@ -133,7 +134,7 @@ export function PreferencesDialog({ welcome }: { welcome?: boolean }) {
         {loadError ? (
           <span role="alert" style={{ padding: "24px 0", textAlign: "center", fontSize: 14, color: "#8a2f24" }}>No pudimos cargar tus preferencias. Cierra y vuelve a intentarlo.</span>
         ) : !loaded ? (
-          <span className="muted-14" style={{ padding: "24px 0", textAlign: "center" }}>Cargando tus preferencias…</span>
+          <PreferencesSkeleton />
         ) : (
           <>
             <ChipGroup title="Operación" strong>

@@ -59,13 +59,13 @@ describe("etiquetas", () => {
 
   it("sin cuerpo revalida todas las etiquetas públicas", async () => {
     const res = await POST(req({ auth }));
-    expect((await res.json()).revalidated).toEqual(["properties", "agents", "zones", "amenities"]);
-    expect(revalidateTag).toHaveBeenCalledTimes(4);
+    expect((await res.json()).revalidated).toEqual(["properties", "agents", "zones", "amenities", "ads"]);
+    expect(revalidateTag).toHaveBeenCalledTimes(5);
   });
 
   it("JSON inválido equivale a sin cuerpo", async () => {
     const res = await POST(req({ auth, body: "{no json" }));
-    expect((await res.json()).revalidated).toHaveLength(4);
+    expect((await res.json()).revalidated).toHaveLength(5);
   });
 
   it("descarta etiquetas desconocidas o con formato inválido", async () => {

@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { SearchView } from "@/components/SearchView";
+import { SearchSkeleton } from "@/components/Skeletons";
 import { getFavoriteIds } from "@/lib/account";
-import { getAgents, getAmenities, searchProperties } from "@/lib/data";
+import { pickAd } from "@/lib/ads";
+import { getActiveAds, getAgents, getAmenities, searchProperties } from "@/lib/data";
 import { OP_LABEL, shortCrc, TYPE_PLURAL } from "@/lib/format";
 import { searchPath } from "@/lib/routes";
 import { parseSearchParams } from "@/lib/search-params";
@@ -13,7 +15,7 @@ export const metadata: Metadata = { title: "Propiedades en Cartago · Thomas Mat
 
 export default function SearchPage({ searchParams }: PageProps<"/propiedades">) {
   return (
-    <Suspense fallback={<div className="search"><div className="container empty-state" style={{ paddingTop: 64 }}><span className="muted-14">Buscando propiedades…</span></div></div>}>
+    <Suspense fallback={<SearchSkeleton />}>
       <SearchResults searchParams={searchParams} />
     </Suspense>
   );
@@ -25,7 +27,11 @@ async function SearchResults({ searchParams }: Pick<PageProps<"/propiedades">, "
   const [amenities, agents] = await Promise.all([getAmenities(), getAgents()]);
   const f = parseSearchParams(sp, amenities.map((a) => a.name));
   // Las guardadas dependen del usuario: se leen con su sesión (RLS) y no se cachean.
-  const { items, total } = await searchProperties(f, f.saved ? await getFavoriteIds() : undefined);
+  const [{ items, total }, cards] = await Promise.all([
+    searchProperties(f, f.saved ? await getFavoriteIds() : undefined),
+    // Con un solo cantón filtrado, los anuncios segmentados a ese cantón van primero.
+    getActiveAds("search_card", f.cantons.length === 1 ? f.cantons[0] : null),
+  ]);
   // Página fuera de rango (p. ej. tras quitar favoritos): volver a la primera.
   if (!items.length && f.page > 1) redirect(searchPath({ ...f, page: 1 }));
 
@@ -53,6 +59,7 @@ async function SearchResults({ searchParams }: Pick<PageProps<"/propiedades">, "
       agents={Object.fromEntries(agents.map((a) => [a.id, a]))}
       filters={f}
       activeChips={activeChips}
+      ad={pickAd(cards, f.page - 1)}
     />
   );
 }

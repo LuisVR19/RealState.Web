@@ -7,10 +7,14 @@
 // (sessionStorage, que no es una cookie y se borra al cerrarla).
 
 export type TrackEvent = "page_view" | "property_view" | "whatsapp_click" | "share_click" | "search";
+/** Eventos de publicidad: se suman por anuncio (rpc track_ad_events), no por propiedad. */
+export type AdEvent = "impression" | "click" | "dismiss";
 
 interface Queued {
-  e: TrackEvent;
+  e: TrackEvent | `ad_${AdEvent}`;
   p?: string;
+  /** Anuncio (solo eventos ad_*). */
+  a?: string;
 }
 
 const ENDPOINT = "/api/track";
@@ -53,7 +57,25 @@ export function track(e: TrackEvent, propertyId?: string | null): void {
   try {
     if (typeof window === "undefined" || isBot()) return;
     if (e === "property_view" && (!propertyId || !firstTimeInTab(`trk:pv:${propertyId}`))) return;
-    queue.push(propertyId ? { e, p: propertyId } : { e });
+    enqueue(propertyId ? { e, p: propertyId } : { e });
+  } catch {
+    // Ignorado a propósito.
+  }
+}
+
+/** Registra una impresión, un clic o un cierre de un anuncio. Nunca lanza. */
+export function trackAd(adId: string | null | undefined, e: AdEvent): void {
+  try {
+    if (typeof window === "undefined" || !adId || isBot()) return;
+    enqueue({ e: `ad_${e}`, a: adId });
+  } catch {
+    // Ignorado a propósito.
+  }
+}
+
+function enqueue(item: Queued): void {
+  try {
+    queue.push(item);
     if (!listening) {
       listening = true;
       // Al ocultar o cerrar la pestaña se manda lo pendiente.

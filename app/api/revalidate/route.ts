@@ -9,7 +9,7 @@ import { revalidateTag } from "next/cache";
 import { NextResponse, type NextRequest } from "next/server";
 import { TAGS } from "@/lib/data";
 
-const ALL_TAGS = [TAGS.properties, TAGS.agents, TAGS.zones, TAGS.amenities];
+const ALL_TAGS = [TAGS.properties, TAGS.agents, TAGS.zones, TAGS.amenities, TAGS.ads];
 const TAG_RE = /^(properties|agents|zones|amenities|property:ISF-\d{4,8})$/;
 
 function authorized(request: NextRequest) {

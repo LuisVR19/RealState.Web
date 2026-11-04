@@ -5,6 +5,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { OpenDialogButton } from "@/components/OpenDialogButton";
 import { PropertyCard } from "@/components/PropertyCard";
+import { AgentProfileSkeleton } from "@/components/Skeletons";
 import { getAgent, getAgents, getPropertiesByAgent } from "@/lib/data";
 import { waLink } from "@/lib/format";
 
@@ -24,7 +25,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
 export default function AgentPage({ params }: Params) {
   return (
-    <Suspense fallback={<main className="page-scroll"><div className="container agent-page"><span className="muted-14">Cargando perfil…</span></div></main>}>
+    <Suspense fallback={<AgentProfileSkeleton />}>
       <AgentProfile params={params} />
     </Suspense>
   );

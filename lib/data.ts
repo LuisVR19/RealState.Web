@@ -10,18 +10,20 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { connection } from "next/server";
+import { adFromRow, type Ad, type AdPlacement } from "./ads";
 import { formatPhone, initialsOf, matchingPreset } from "./format";
 import { EMPTY_FILTERS, PAGE_SIZE } from "./search-params";
 import type { Database } from "./supabase/database.types";
 import { createPublicClient } from "./supabase/public";
 import { siteContactFrom } from "./team";
-import type { Agent, AmenityOption, FeaturedZone, Property, PropertySummary, SearchFilters, SearchResult, SiteContact } from "./types";
+import type { Agent, AmenityOption, Canton, FeaturedZone, Property, PropertySummary, SearchFilters, SearchResult, SiteContact } from "./types";
 
 export const TAGS = {
   properties: "properties",
   agents: "agents",
   zones: "zones",
   amenities: "amenities",
+  ads: "ads",
   property: (code: string) => `property:${code}`,
 } as const;
 
@@ -93,6 +95,24 @@ export async function getFeaturedZones(): Promise<FeaturedZone[]> {
     .order("position");
   if (error) fail("las zonas destacadas", error);
   return data.map((z) => ({ id: z.id, name: z.name, label: z.label, imageUrl: z.image_url, position: z.position }));
+}
+
+/**
+ * Anuncios activos y vigentes para un espacio (rpc get_active_ads; sin datos de contacto de la marca).
+ * Se invalidan al cambiar en el panel (etiqueta `ads`); además caducan en pocos minutos porque el
+ * inicio y el fin de una campaña dependen de la fecha, no de una escritura en la base.
+ * La publicidad nunca rompe una página: si falla la lectura, simplemente no hay anuncios.
+ */
+export async function getActiveAds(placement: AdPlacement, canton?: Canton | null): Promise<Ad[]> {
+  "use cache";
+  cacheLife({ stale: 60, revalidate: 300, expire: 3600 });
+  cacheTag(TAGS.ads);
+  const { data, error } = await createPublicClient().rpc("get_active_ads", { p_placement: placement, ...(canton ? { p_canton: canton } : {}) });
+  if (error) {
+    console.error("[data] los anuncios:", error.message);
+    return [];
+  }
+  return (data ?? []).map(adFromRow);
 }
 
 // -----------------------------------------------------------------------------

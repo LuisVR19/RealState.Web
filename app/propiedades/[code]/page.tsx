@@ -3,15 +3,17 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
+import { AdServices } from "@/components/Ads";
 import { DetailMap } from "@/components/DetailMap";
 import { BottomBar } from "@/components/detail/BottomBar";
 import { DetailTopBar } from "@/components/detail/DetailTopBar";
 import { Gallery } from "@/components/detail/Gallery";
 import { MortgageCalculator } from "@/components/detail/MortgageCalculator";
 import { PropertyCard } from "@/components/PropertyCard";
+import { PropertyDetailSkeleton } from "@/components/Skeletons";
 import { TrackView } from "@/components/TrackView";
 import { VisitScheduler } from "@/components/VisitScheduler";
-import { agentResolver, getAgentOrTeam, getPropertyByCode, getPublishedProperties, getSimilarProperties } from "@/lib/data";
+import { agentResolver, getActiveAds, getAgentOrTeam, getPropertyByCode, getPublishedProperties, getSimilarProperties } from "@/lib/data";
 import { amenityIcon, crc, decimal, dots, monthlyPayment, OP_LABEL, pricePeriod, priceSuffix, waProperty } from "@/lib/format";
 import { agentPath, propertyPath } from "@/lib/routes";
 
@@ -39,7 +41,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
 export default function PropertyPage({ params }: Params) {
   return (
-    <Suspense fallback={<div className="detail"><div className="detail-inner"><span className="muted-14" style={{ padding: "64px 0" }}>Cargando propiedad…</span></div></div>}>
+    <Suspense fallback={<PropertyDetailSkeleton />}>
       <PropertyDetail params={params} />
     </Suspense>
   );
@@ -52,7 +54,7 @@ async function PropertyDetail({ params }: Params) {
   await connection();
   const p = await getPropertyByCode((await params).code);
   if (!p) notFound();
-  const [a, similar, agentOf] = await Promise.all([getAgentOrTeam(p.agentId), getSimilarProperties(p), agentResolver()]);
+  const [a, similar, agentOf, services] = await Promise.all([getAgentOrTeam(p.agentId), getSimilarProperties(p), agentResolver(), getActiveAds("detail_services", p.canton)]);
   const showCalc = p.operation === "Venta" || p.operation === "Preventa";
 
   const facts = [
@@ -159,6 +161,8 @@ async function PropertyDetail({ params }: Params) {
                 ))}
               </div>
             </section>
+
+            <AdServices ads={services} />
           </div>
 
           <aside className="detail-side">

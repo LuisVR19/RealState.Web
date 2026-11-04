@@ -69,7 +69,7 @@ export function SiteHeader() {
         </nav>
         <div className="header-actions">
           {account === undefined ? (
-            <span className="btn btn-secondary login-btn" aria-hidden style={{ visibility: "hidden" }}><i className="ph ph-user-circle" style={{ fontSize: 18 }} /></span>
+            <span className="sk sk-block sk-login" aria-hidden />
           ) : !account ? (
             <button className="btn btn-secondary login-btn" onClick={() => { closeAll(); open({ type: "auth", mode: "login" }); }} aria-label="Iniciar sesión">
               <i className="ph ph-user-circle" style={{ fontSize: 18 }} /><span className="hide-lt-640">Iniciar sesión</span>

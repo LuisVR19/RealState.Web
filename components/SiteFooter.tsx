@@ -11,6 +11,7 @@ export async function SiteFooter() {
       <span className="site-footer-right">
         {contact.hours} · {contact.phone}
         {/* El panel de asesores será otra aplicación / ruta protegida. */}
+        <Link href="/anunciate" style={{ color: "var(--color-neutral-400)" }}>Anunciar con nosotros</Link>
         <a href="/panel" style={{ color: "var(--color-neutral-400)" }}>Acceso asesores</a>
       </span>
       <nav className="site-footer-legal" aria-label="Información legal">

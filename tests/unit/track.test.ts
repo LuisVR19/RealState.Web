@@ -11,6 +11,7 @@ const { POST } = await import("@/app/api/track/route");
 const trackLib = await import("@/lib/track");
 
 const PROP = "d0000000-0000-4000-8000-000000000004";
+const AD = "e2000000-0000-4000-8000-000000000001";
 
 /* ------------------------------------------------------------------ endpoint */
 describe("POST /api/track", () => {
@@ -54,6 +55,34 @@ describe("POST /api/track", () => {
     setup();
     const res = await post(body, headers as Record<string, string>);
     expect(res.status).toBe(204);
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("separa la publicidad: los eventos ad_* van a track_ad_events con el nombre que espera la base", async () => {
+    const res = await post([
+      { e: "page_view" },
+      { e: "ad_impression", a: AD },
+      { e: "ad_click", a: AD },
+      { e: "ad_dismiss", a: AD },
+      { e: "ad_impression", a: "ejemplo-banco" },
+      { e: "ad_click" },
+      { e: "ad_inventado", a: AD },
+      { e: "toString", a: AD },
+    ]);
+    expect(res.status).toBe(204);
+    expect(rpc).toHaveBeenCalledTimes(2);
+    expect(rpc).toHaveBeenCalledWith("track_site_events", { p_secret: "secreto", p_events: [{ e: "page_view" }] });
+    expect(rpc).toHaveBeenCalledWith("track_ad_events", { p_secret: "secreto", p_events: [{ a: AD, e: "impression" }, { a: AD, e: "click" }, { a: AD, e: "dismiss" }] });
+  });
+
+  it("solo publicidad: no llama a track_site_events", async () => {
+    await post([{ e: "ad_impression", a: AD }]);
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(rpc.mock.calls[0][0]).toBe("track_ad_events");
+  });
+
+  it("solo eventos de anuncio inválidos: no llama a la base", async () => {
+    await post([{ e: "ad_click", a: "no-uuid" }, { e: "ad_click" }]);
     expect(rpc).not.toHaveBeenCalled();
   });
 
@@ -130,6 +159,22 @@ describe("lib/track", () => {
     trackLib.track("search");
     trackLib.flush();
     expect(fetchMock).toHaveBeenCalledWith("/api/track", expect.objectContaining({ method: "POST", keepalive: true }));
+  });
+
+  it("trackAd manda impresiones, clics y cierres en el mismo lote", async () => {
+    trackLib.trackAd(AD, "impression");
+    trackLib.trackAd(AD, "click");
+    trackLib.trackAd(AD, "dismiss");
+    trackLib.trackAd(null, "click");
+    trackLib.flush();
+    expect(await bodies()).toEqual([[{ e: "ad_impression", a: AD }, { e: "ad_click", a: AD }, { e: "ad_dismiss", a: AD }]]);
+  });
+
+  it("trackAd no cuenta bots", () => {
+    vi.stubGlobal("navigator", { userAgent: "Googlebot/2.1", webdriver: false, sendBeacon: beacon });
+    trackLib.trackAd(AD, "impression");
+    trackLib.flush();
+    expect(beacon).not.toHaveBeenCalled();
   });
 
   it("nunca lanza aunque el navegador falle", () => {

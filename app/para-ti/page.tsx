@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { OpenDialogButton } from "@/components/OpenDialogButton";
 import { PropertyCard } from "@/components/PropertyCard";
+import { ForYouSkeleton } from "@/components/Skeletons";
 import { getClientDashboard } from "@/lib/account";
 import { agentResolver } from "@/lib/data";
 import { dayParts, OP_LABEL, shortCrc, TYPE_PLURAL } from "@/lib/format";
@@ -21,7 +22,7 @@ export default function ForYouPage() {
   return (
     <main className="page-scroll">
       <div className="container foryou">
-        <Suspense fallback={<span className="muted-14" style={{ padding: "48px 0" }}>Cargando tus coincidencias…</span>}>
+        <Suspense fallback={<ForYouSkeleton />}>
           <ForYou />
         </Suspense>
       </div>
