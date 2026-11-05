@@ -11,7 +11,7 @@ import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { connection } from "next/server";
 import { adFromRow, type Ad, type AdPlacement } from "./ads";
-import { formatPhone, initialsOf, matchingPreset } from "./format";
+import { CANTONS, formatPhone, initialsOf, matchingPreset } from "./format";
 import { EMPTY_FILTERS, PAGE_SIZE } from "./search-params";
 import type { Database } from "./supabase/database.types";
 import { createPublicClient } from "./supabase/public";
@@ -95,6 +95,21 @@ export async function getFeaturedZones(): Promise<FeaturedZone[]> {
     .order("position");
   if (error) fail("las zonas destacadas", error);
   return data.map((z) => ({ id: z.id, name: z.name, label: z.label, imageUrl: z.image_url, position: z.position }));
+}
+
+/**
+ * Ubicaciones (ciudad / cantón) del sitio: las que tienen propiedades publicadas (rpc get_property_locations,
+ * de más a menos propiedades) más las zonas destacadas. Es la lista cerrada contra la que se validan los
+ * filtros de ubicación, así que se cachea y se invalida junto con propiedades y zonas.
+ */
+export async function getLocations(): Promise<string[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(TAGS.properties, TAGS.zones);
+  const [locs, zones] = await Promise.all([createPublicClient().rpc("get_property_locations"), getFeaturedZones()]);
+  // Si la RPC aún no existe o falla, el sitio sigue con las sugerencias base.
+  const fromProps = locs.error ? [...CANTONS] : locs.data.map((l) => l.canton);
+  return [...new Set([...fromProps, ...zones.map((z) => z.name)].map((x) => x.trim()).filter(Boolean))];
 }
 
 /**
@@ -215,7 +230,7 @@ async function getPropertyByCodeCached(code: string): Promise<Property | null> {
   const { data: r, error } = await createPublicClient()
     .from("properties")
     .select(
-      "id, code, title, description, operation, type, status, featured, tag, canton, zone, address, lat, lng, price, " +
+      "id, code, title, description, operation, type, status, featured, tag, country, province, canton, zone, address, lat, lng, price, " +
         "maintenance_fee, bedrooms, bathrooms, area_m2, parking_spaces, year_built, guests, floor, delivery, agent_id, published_at, " +
         "property_images(url, position), property_amenities(amenities(name))",
     )
@@ -241,6 +256,8 @@ async function getPropertyByCodeCached(code: string): Promise<Property | null> {
     status: r.status,
     featured: r.featured,
     tag: r.tag ?? undefined,
+    country: r.country ?? "Costa Rica",
+    province: r.province ?? "",
     canton: r.canton,
     zone: r.zone,
     address: r.address,

@@ -45,6 +45,8 @@ interface UIContextValue {
   refreshAccount: () => Promise<void>;
   signOut: () => Promise<void>;
   amenities: AmenityOption[];
+  /** Ubicaciones (ciudad / cantón) con propiedades publicadas o zona destacada. */
+  locations: string[];
   totalProperties: number;
   /** Contacto general del sitio (el del dueño del negocio). */
   contact: SiteContact;
@@ -69,7 +71,7 @@ export function useUI(): UIContextValue {
   return { ...ctx, account: undefined, favorites: NO_FAVORITES, matchCount: 0 };
 }
 
-export function UIProvider({ children, totalProperties, amenities, contact }: { children: ReactNode; totalProperties: number; amenities: AmenityOption[]; contact: SiteContact }) {
+export function UIProvider({ children, totalProperties, amenities, locations, contact }: { children: ReactNode; totalProperties: number; amenities: AmenityOption[]; locations: string[]; contact: SiteContact }) {
   const router = useRouter();
   const [dialog, setDialog] = useState<DialogState>(null);
   const [user, setUser] = useState<User | null | undefined>(undefined);
@@ -180,8 +182,8 @@ export function UIProvider({ children, totalProperties, amenities, contact }: { 
   }, [dialog, close]);
 
   const value = useMemo(
-    () => ({ dialog, open: setDialog, close, account, favorites, matchCount, toggleFavorite, refreshAccount, signOut, amenities, totalProperties, contact }),
-    [dialog, close, account, favorites, matchCount, toggleFavorite, refreshAccount, signOut, amenities, totalProperties, contact],
+    () => ({ dialog, open: setDialog, close, account, favorites, matchCount, toggleFavorite, refreshAccount, signOut, amenities, locations, totalProperties, contact }),
+    [dialog, close, account, favorites, matchCount, toggleFavorite, refreshAccount, signOut, amenities, locations, totalProperties, contact],
   );
 
   return (

@@ -62,7 +62,7 @@ async function ForYou() {
   const budget = f.budgetMin || f.budgetMax ? `${f.budgetMin ? shortCrc(f.budgetMin) : "₡0"} – ${f.budgetMax ? shortCrc(f.budgetMax) : "sin tope"}` : "Cualquier presupuesto";
   const prefChips = [f.operation === "Todas" ? "Cualquier operación" : OP_LABEL[f.operation]].concat(
     f.propertyTypes.length ? f.propertyTypes.map((t) => TYPE_PLURAL[t]) : ["Cualquier tipo"],
-    f.cantons.length ? f.cantons : ["Toda la provincia"],
+    f.cantons.length ? f.cantons : ["Cualquier ubicación"],
     [budget],
     f.minBedrooms ? [f.minBedrooms + "+ habitaciones"] : [],
     f.minBathrooms ? [f.minBathrooms + "+ baños"] : [],

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { amenityIcon, CANTONS, OP_LABEL, pricePresetsFor, shortCrc, TYPES, TYPE_ICON, TYPE_PLURAL } from "@/lib/format";
+import { amenityIcon, OP_LABEL, pricePresetsFor, shortCrc, TYPES, TYPE_ICON, TYPE_PLURAL } from "@/lib/format";
 import { searchPath } from "@/lib/routes";
 import { EMPTY_FILTERS } from "@/lib/search-params";
 import { createClient } from "@/lib/supabase/client";
@@ -19,7 +19,7 @@ const toAmount = (s: string) => {
 
 /** Búsqueda personalizada paso a paso. Cuenta coincidencias reales y lleva al listado filtrado. */
 export function WizardDialog() {
-  const { close, account, amenities, totalProperties } = useUI();
+  const { close, account, amenities, locations, totalProperties } = useUI();
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [op, setOp] = useState<Op>("Venta");
@@ -84,7 +84,7 @@ export function WizardDialog() {
 
   const steps = [
     { title: "¿Qué estás buscando?", sub: "Elige la operación y uno o varios tipos de propiedad." },
-    { title: "¿Dónde te gustaría vivir o invertir?", sub: "Puedes marcar varios cantones. Si no marcas ninguno, buscamos en toda la provincia." },
+    { title: "¿Dónde te gustaría vivir o invertir?", sub: "Puedes marcar varias ubicaciones. Si no marcas ninguna, buscamos en todas." },
     { title: "¿Cuánto espacio necesitas?", sub: "Habitaciones, baños, parqueos y metros cuadrados." },
     { title: "¿Cuál es tu presupuesto?", sub: op === "Alquiler" ? "Monto mensual en colones." : op === "Vacacional" ? "Monto por noche en colones." : "Precio total en colones." },
     { title: "¿Algo imprescindible?", sub: "Solo mostraremos propiedades que tengan todo lo que marques." },
@@ -94,7 +94,7 @@ export function WizardDialog() {
   const budget = pMin || pMax ? `${pMin ? shortCrc(pMin) : "₡0"} – ${pMax ? shortCrc(pMax) : "sin tope"}` : null;
   const summary = [op === "Todas" ? "Cualquier operación" : OP_LABEL[op]].concat(
     types.length ? types.map((t) => TYPE_PLURAL[t]) : ["Cualquier tipo"],
-    cantons.length ? cantons : ["Toda la provincia"],
+    cantons.length ? cantons : ["Cualquier ubicación"],
     filters.bedrooms ? [filters.bedrooms + "+ hab."] : [],
     filters.bathrooms ? [filters.bathrooms + "+ baños"] : [],
     park ? [park + "+ parqueos"] : [],
@@ -165,8 +165,8 @@ export function WizardDialog() {
             </>
           )}
           {step === 1 && (
-            <ChipGroup title="Cantones de Cartago">
-              {CANTONS.map((c) => <Chip key={c} size="lg" label={c} icon="ph-map-pin" on={cantons.includes(c)} onClick={() => setCantons(toggle(cantons, c))} />)}
+            <ChipGroup title="Ubicaciones">
+              {locations.map((c) => <Chip key={c} size="lg" label={c} icon="ph-map-pin" on={cantons.includes(c)} onClick={() => setCantons(toggle(cantons, c))} />)}
             </ChipGroup>
           )}
           {step === 2 && (

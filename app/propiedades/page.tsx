@@ -5,13 +5,13 @@ import { SearchView } from "@/components/SearchView";
 import { SearchSkeleton } from "@/components/Skeletons";
 import { getFavoriteIds } from "@/lib/account";
 import { pickAd } from "@/lib/ads";
-import { getActiveAds, getAgents, getAmenities, searchProperties } from "@/lib/data";
+import { getActiveAds, getAgents, getAmenities, getLocations, searchProperties } from "@/lib/data";
 import { OP_LABEL, shortCrc, TYPE_PLURAL } from "@/lib/format";
 import { searchPath } from "@/lib/routes";
 import { parseSearchParams } from "@/lib/search-params";
 import type { SearchFilters } from "@/lib/types";
 
-export const metadata: Metadata = { title: "Propiedades en Cartago · Thomas Mata S.A." };
+export const metadata: Metadata = { title: "Propiedades · Thomas Mata S.A." };
 
 export default function SearchPage({ searchParams }: PageProps<"/propiedades">) {
   return (
@@ -24,8 +24,8 @@ export default function SearchPage({ searchParams }: PageProps<"/propiedades">) 
 async function SearchResults({ searchParams }: Pick<PageProps<"/propiedades">, "searchParams">) {
   // Primero los query params: lo que sigue ocurre por petición, no durante el prerender.
   const sp = await searchParams;
-  const [amenities, agents] = await Promise.all([getAmenities(), getAgents()]);
-  const f = parseSearchParams(sp, amenities.map((a) => a.name));
+  const [amenities, agents, locations] = await Promise.all([getAmenities(), getAgents(), getLocations()]);
+  const f = parseSearchParams(sp, amenities.map((a) => a.name), locations);
   // Las guardadas dependen del usuario: se leen con su sesión (RLS) y no se cachean.
   const [{ items, total }, cards] = await Promise.all([
     searchProperties(f, f.saved ? await getFavoriteIds() : undefined),

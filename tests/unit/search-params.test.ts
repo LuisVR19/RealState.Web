@@ -22,6 +22,12 @@ describe("parseSearchParams", () => {
     });
   });
 
+  it("acepta ubicaciones de cualquier país si están en la lista de ubicaciones con propiedades", () => {
+    const f = parseSearchParams({ canton: "Narnia,Miami,Paraíso" }, AMENITIES, ["Paraíso", "Miami", "Ciudad de Panamá"]);
+    // Orden de la lista conocida (una sola clave de caché por combinación) y sin las desconocidas.
+    expect(f.cantons).toEqual(["Paraíso", "Miami"]);
+  });
+
   it("ignora valores fuera de las listas cerradas", () => {
     const f = parseSearchParams(
       { op: "'; drop table properties;--", tipo: "Castillo,<script>", canton: "Narnia", orden: "random()", amen: "Helipuerto", guardadas: "true" },

@@ -7,7 +7,8 @@ type Enums = Database["public"]["Enums"];
 export type Operation = Enums["property_operation"];
 export type PropertyType = Enums["property_type"];
 export type PropertyStatus = Enums["property_status"];
-export type Canton = Enums["canton"];
+/** Ciudad / cantón / municipio (texto libre: cualquier país). */
+export type Canton = string;
 /** Nombre de la amenidad tal como está en el catálogo (`amenities.name`). */
 export type Amenity = string;
 
@@ -83,6 +84,10 @@ export interface PropertySummary {
 export interface Property extends PropertySummary {
   description: string;
   status: PropertyStatus;
+  /** País (por defecto Costa Rica). */
+  country: string;
+  /** Provincia, estado o región ("" si no se indicó). */
+  province: string;
   address: string;
   maintenanceFee?: number;
   floor?: string;

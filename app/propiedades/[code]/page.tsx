@@ -71,7 +71,7 @@ async function PropertyDetail({ params }: Params) {
       ["Código", p.code],
       ["Tipo", p.type],
       ["Operación", OP_LABEL[p.operation]],
-      ["Ubicación", `${p.zone}, ${p.canton}`],
+      ["Ubicación", [p.zone, p.canton, p.province, p.country].filter(Boolean).join(", ")],
       p.floor ? ["Piso", p.floor] : null,
       p.maintenanceFee ? ["Cuota de mantenimiento", crc(p.maintenanceFee) + "/mes"] : null,
       p.delivery ? ["Entrega estimada", p.delivery] : null,
@@ -89,7 +89,7 @@ async function PropertyDetail({ params }: Params) {
     // data-property: los clics a WhatsApp de esta ficha se cuentan para esta propiedad (SiteTracker).
     <div className="detail" data-property={p.id}>
       <TrackView propertyId={p.id} />
-      <DetailTopBar property={p} crumb={`Cartago › ${p.canton} › ${p.zone} · ${p.code}`} />
+      <DetailTopBar property={p} crumb={`${[p.country !== "Costa Rica" ? p.country : null, p.province || null, p.canton, p.zone].filter(Boolean).join(" › ")} · ${p.code}`} />
       <div className="detail-inner">
         <Gallery images={p.images} title={p.title} />
 
@@ -102,7 +102,7 @@ async function PropertyDetail({ params }: Params) {
                 {p.tag && <span className="tag tag-accent">{p.tag}</span>}
               </div>
               <h1 className="detail-title">{p.title}</h1>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14, color: "var(--color-neutral-400)" }}><i className="ph ph-map-pin" style={{ fontSize: 16 }} />{p.address}, {p.zone}, {p.canton}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14, color: "var(--color-neutral-400)" }}><i className="ph ph-map-pin" style={{ fontSize: 16 }} />{[p.address, p.zone, p.canton, p.country !== "Costa Rica" ? p.country : null].filter(Boolean).join(", ")}</div>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
                 {p.operation === "Preventa" && <span style={{ fontSize: 14, color: "var(--color-neutral-400)" }}>Desde</span>}
                 <span className="detail-price">{crc(p.price)}</span>

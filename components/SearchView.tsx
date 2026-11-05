@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Fragment, useEffect, useRef, useState, useTransition, type MouseEvent } from "react";
 import type { Map as LeafletMap } from "leaflet";
-import { amenityIcon, CANTONS, crc, dots, matchingPreset, OP_LABEL, pricePresetsFor, priceSuffix, TYPES, TYPE_ICON, TYPE_PLURAL, waProperty } from "@/lib/format";
+import { amenityIcon, crc, dots, matchingPreset, OP_LABEL, pricePresetsFor, priceSuffix, TYPES, TYPE_ICON, TYPE_PLURAL, waProperty } from "@/lib/format";
 import { propertyPath, searchPath } from "@/lib/routes";
 import type { Ad } from "@/lib/ads";
 import { activeFilterCount, PAGE_SIZE } from "@/lib/search-params";
@@ -41,7 +41,7 @@ const toAmount = (s: string) => {
  * (router.replace) y el servidor la resuelve con search_properties.
  */
 export function SearchView({ properties, total, agents, filters: f, activeChips, ad = null }: Props) {
-  const { open, contact } = useUI();
+  const { open, contact, locations } = useUI();
   const TEAM_CONTACT = contact.team;
   const router = useRouter();
   const pathname = usePathname();
@@ -133,7 +133,7 @@ export function SearchView({ properties, total, agents, filters: f, activeChips,
   const drawerGroups: [string, React.ReactNode, boolean?][] = [
     ["Operación", opChips],
     ["Tipo de propiedad", typeChips],
-    ["Ubicación", CANTONS.map((c) => <Chip key={c} label={c} icon="ph-map-pin" on={f.cantons.includes(c)} onClick={() => apply({ cantons: toggle(f.cantons, c) })} />)],
+    ["Ubicación", locations.map((c) => <Chip key={c} label={c} icon="ph-map-pin" on={f.cantons.includes(c)} onClick={() => apply({ cantons: toggle(f.cantons, c) })} />)],
     ["Precio (colones)", priceChips, true],
     ["Habitaciones", numChips(f.bedrooms, "bedrooms", [0, 1, 2, 3, 4], "ph-bed")],
     ["Baños", numChips(f.bathrooms, "bathrooms", [0, 1, 2, 3], "ph-bathtub")],
@@ -182,7 +182,7 @@ export function SearchView({ properties, total, agents, filters: f, activeChips,
             <div>
               <h1 style={{ fontSize: 22, margin: "0 0 2px" }}>{total} {total === 1 ? "propiedad" : "propiedades"}</h1>
               <div style={{ fontSize: 13, color: "var(--color-neutral-400)" }}>
-                {f.saved ? "Tus propiedades guardadas" : f.operation === "Todas" ? "Venta y alquiler" : OP_LABEL[f.operation]}{f.cantons.length ? ` en ${f.cantons.join(", ")}` : " en la provincia de Cartago"}
+                {f.saved ? "Tus propiedades guardadas" : f.operation === "Todas" ? "Venta y alquiler" : OP_LABEL[f.operation]}{f.cantons.length ? ` en ${f.cantons.join(", ")}` : ""}
               </div>
             </div>
             <select className="input" aria-label="Ordenar" value={f.sort} onChange={(e) => apply({ sort: e.target.value as SortOrder })} style={{ width: "auto", height: 36, fontSize: 13 }}>

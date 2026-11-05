@@ -24,7 +24,7 @@ const num = (v: string | string[] | undefined, max: number) => {
 };
 
 /** Lee y sanea los query params. Los valores inválidos se ignoran. */
-export function parseSearchParams(sp: Raw, amenityNames: readonly string[] = []): SearchFilters {
+export function parseSearchParams(sp: Raw, amenityNames: readonly string[] = [], locationNames: readonly string[] = CANTONS): SearchFilters {
   const op = one(sp.op);
   const q = one(sp.q)?.trim().slice(0, MAX_Q);
   const sort = one(sp.orden);
@@ -35,7 +35,8 @@ export function parseSearchParams(sp: Raw, amenityNames: readonly string[] = [])
   return {
     operation: OPERATIONS.includes(op as Operation) ? (op as Operation) : "Todas",
     types: pick<PropertyType>(TYPES, list(sp.tipo)),
-    cantons: pick<Canton>(CANTONS, list(sp.canton)),
+    // Solo ubicaciones conocidas (las que tienen propiedades o zona destacada): conjunto finito para la caché.
+    cantons: pick<Canton>(locationNames, list(sp.canton)),
     priceMin, priceMax,
     bedrooms: num(sp.hab, 10) ?? 0,
     bathrooms: num(sp.banos, 10) ?? 0,

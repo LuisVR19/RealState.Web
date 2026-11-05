@@ -9,7 +9,7 @@ import { AuthNotice } from "@/components/AuthNotice";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteTracker } from "@/components/SiteTracker";
 import { UIProvider } from "@/components/ui-provider";
-import { getAmenities, getPublishedProperties, getSiteContact } from "@/lib/data";
+import { getAmenities, getLocations, getPublishedProperties, getSiteContact } from "@/lib/data";
 
 const geist = Geist({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-geist" });
 
@@ -33,11 +33,11 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const [{ total }, amenities, contact] = await Promise.all([getPublishedProperties(), getAmenities(), getSiteContact()]);
+  const [{ total }, amenities, contact, locations] = await Promise.all([getPublishedProperties(), getAmenities(), getSiteContact(), getLocations()]);
   return (
     <html lang="es" className={geist.variable}>
       <body>
-        <UIProvider totalProperties={total} amenities={amenities} contact={contact}>
+        <UIProvider totalProperties={total} amenities={amenities} locations={locations} contact={contact}>
           {/* SiteHeader lee usePathname(): en rutas que se resuelven al pedirlas (p. ej. un 404 de
               /propiedades/<código inválido>) Next exige un Suspense para no bloquear el prerender. */}
           <Suspense fallback={null}><SiteHeader /></Suspense>

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CANTONS, dots, OP_LABEL, TYPES, TYPE_PLURAL } from "@/lib/format";
+import { dots, OP_LABEL, TYPES, TYPE_PLURAL } from "@/lib/format";
 import { createClient } from "@/lib/supabase/client";
 import type { Amenity, Canton, Operation, PropertyType } from "@/lib/types";
 import { Chip, ChipGroup, toggle } from "../Chip";
@@ -18,7 +18,7 @@ const toAmount = (s: string) => {
 
 /** Preferencias del cliente: se leen de `client_preferences` y se guardan con rpc save_my_preferences. */
 export function PreferencesDialog({ welcome }: { welcome?: boolean }) {
-  const { close, account, amenities, refreshAccount, open } = useUI();
+  const { close, account, amenities, locations, refreshAccount, open } = useUI();
   const router = useRouter();
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -143,8 +143,8 @@ export function PreferencesDialog({ welcome }: { welcome?: boolean }) {
             <ChipGroup title="Tipo de propiedad" strong>
               {TYPES.map((t) => <Chip key={t} size="md" label={TYPE_PLURAL[t]} on={types.includes(t)} onClick={() => setTypes(toggle(types, t))} />)}
             </ChipGroup>
-            <ChipGroup title="Cantones de interés" strong>
-              {CANTONS.map((c) => <Chip key={c} size="md" label={c} on={cantons.includes(c)} onClick={() => setCantons(toggle(cantons, c))} />)}
+            <ChipGroup title="Ubicaciones de interés" strong>
+              {[...new Set([...locations, ...cantons])].map((c) => <Chip key={c} size="md" label={c} on={cantons.includes(c)} onClick={() => setCantons(toggle(cantons, c))} />)}
             </ChipGroup>
             <div className="chip-group">
               <span className="chip-group-title is-strong">{budgetTitle}</span>

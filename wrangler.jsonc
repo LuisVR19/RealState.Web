@@ -7,6 +7,9 @@
 		"nodejs_compat",
 		"global_fetch_strictly_public"
 	],
+	// Variables de texto: ninguna. Lo privado va como Secret (wrangler secret put / dashboard) y no
+	// se borra al desplegar; lo NEXT_PUBLIC_* va en las variables de Build porque se fija al compilar.
+	"vars": {},
 	// Workers Logs: guarda console.* e invocaciones para buscarlos en el dashboard
 	// (Workers & Pages → realstate-web → Observability). Plan gratis: 200k eventos/día, 3 días.
 	"observability": {
