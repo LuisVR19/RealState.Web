@@ -9,7 +9,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { HomeSkeleton } from "@/components/Skeletons";
 import { pickAd } from "@/lib/ads";
 import { agentResolver, getActiveAds, getAgents, getFeaturedProperty, getFeaturedZones, getPublishedProperties, getSiteContact } from "@/lib/data";
-import { crc, TYPES, TYPE_ICON, TYPE_PLURAL, waProperty } from "@/lib/format";
+import { CATEGORIES, CATEGORY_ICON, CATEGORY_LABEL, crc, TYPES, TYPE_ICON, TYPE_PLURAL, waProperty } from "@/lib/format";
 import { agentPath, propertyPath, searchPath } from "@/lib/routes";
 
 const STEPS = [
@@ -43,9 +43,9 @@ async function HomeContent() {
       <div className="container home">
         <section className="hero">
           <div className="hero-text">
-            <span className="eyebrow">Paraíso · Orosi · Cartago · Tres Ríos</span>
-            <h1 className="hero-title">Encuentra tu próxima propiedad con un asesor a tu lado.</h1>
-            <p className="hero-lead">Casas, apartamentos, locales y bodegas revisados por nuestro equipo. Te acompañamos desde la primera visita hasta la firma.</p>
+            <span className="eyebrow">Propiedades y vehículos · Paraíso · Cartago · Tres Ríos</span>
+            <h1 className="hero-title">Encuentra tu próxima propiedad o vehículo con un asesor a tu lado.</h1>
+            <p className="hero-lead">Casas, apartamentos, locales, carros, motos, pickups y camiones revisados por nuestro equipo. Te acompañamos desde la primera visita hasta la firma.</p>
             <HomeSearch />
             <OpenDialogButton dialog={{ type: "wizard" }} className="link-cta">
               <i className="ph ph-magic-wand" style={{ fontSize: 17 }} />Búsqueda personalizada: dinos qué necesitas, paso a paso
@@ -58,7 +58,7 @@ async function HomeContent() {
               <span className="eyebrow" style={{ fontSize: 11, letterSpacing: ".1em" }}>Destacada</span>
               <span style={{ fontSize: 20, fontWeight: 500, letterSpacing: "-0.02em" }}>{crc(hero.price)}</span>
               <span style={{ fontSize: 13, color: "var(--color-neutral-300)" }}>{hero.title}</span>
-              <span className="arrow-link" style={{ marginTop: 4 }}>Ver propiedad<i className="ph ph-arrow-right" /></span>
+              <span className="arrow-link" style={{ marginTop: 4 }}>Ver detalle<i className="ph ph-arrow-right" /></span>
             </div>
           </Link>}
         </section>
@@ -66,6 +66,15 @@ async function HomeContent() {
         <section className="section">
           <h2 className="h2">Explora por tipo</h2>
           <div className="grid-categories">
+            {CATEGORIES.map((c) => (
+              <Link key={c} href={searchPath({ category: c })} className="cat-card">
+                <i className={`ph ${CATEGORY_ICON[c]}`} />
+                <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <span style={{ fontSize: 15, fontWeight: 500 }}>Todos los {CATEGORY_LABEL[c].toLowerCase()}</span>
+                  <span style={{ fontSize: 12, color: "var(--color-neutral-400)" }}>{props.filter((p) => p.category === c).length} disponibles</span>
+                </span>
+              </Link>
+            ))}
             {TYPES.map((t) => (
               <Link key={t} href={searchPath({ types: [t] })} className="cat-card">
                 <i className={`ph ${TYPE_ICON[t]}`} />
@@ -80,8 +89,8 @@ async function HomeContent() {
 
         <section className="section">
           <div className="section-head">
-            <div><h2 className="h2" style={{ marginBottom: 4 }}>Recién publicadas</h2><div className="muted-14">Propiedades que entraron esta semana al inventario.</div></div>
-            <Link href="/propiedades" className="btn btn-ghost">Ver todas en el mapa<i className="ph ph-arrow-right" /></Link>
+            <div><h2 className="h2" style={{ marginBottom: 4 }}>Recién publicados</h2><div className="muted-14">Propiedades y vehículos que entraron esta semana al inventario.</div></div>
+            <Link href="/catalogo" className="btn btn-ghost">Ver todas en el mapa<i className="ph ph-arrow-right" /></Link>
           </div>
           <div className="grid-cards-270">
             {recent.map((p) => <PropertyCard key={p.id} property={p} agent={agentOf(p.agentId)} />)}
@@ -99,7 +108,7 @@ async function HomeContent() {
                   <div className="zone-card-shade" />
                   <div className="zone-card-text">
                     <span style={{ fontSize: 19, fontWeight: 500 }}>{z.label}</span>
-                    <span style={{ fontSize: 12, opacity: 0.85 }}>{c} {c === 1 ? "propiedad" : "propiedades"}</span>
+                    <span style={{ fontSize: 12, opacity: 0.85 }}>{c} {c === 1 ? "anuncio" : "anuncios"}</span>
                   </div>
                 </Link>
               );

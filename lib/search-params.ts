@@ -1,16 +1,16 @@
-// Filtros del listado <-> query params de /propiedades. Lo usan el servidor (para consultar)
+// Filtros del listado <-> query params de /catalogo. Lo usan el servidor (para consultar)
 // y el navegador (para construir enlaces). Todo valor externo se valida contra listas
 // cerradas o se acota: así los parámetros arbitrarios no llegan a la base ni a la caché.
-import { CANTONS, OPERATIONS, TYPES } from "./format";
-import type { Canton, Operation, PropertyType, SearchFilters, SortOrder } from "./types";
+import { CANTONS, CATEGORIES, CATEGORY_SLUG, FUELS, operationsOf, TRANSMISSIONS, typesOf } from "./format";
+import type { Canton, Category, Fuel, Operation, PropertyType, SearchFilters, SortOrder, Transmission } from "./types";
 
-export const SORTS: readonly SortOrder[] = ["recientes", "precio_asc", "precio_desc", "area_desc", "destacadas"];
+export const SORTS: readonly SortOrder[] = ["recientes", "precio_asc", "precio_desc", "area_desc", "anio_desc", "km_asc", "destacadas"];
 export const PAGE_SIZE = 24;
 const MAX_Q = 80;
 const MAX_PAGE = 50;
 
 export const EMPTY_FILTERS: SearchFilters = {
-  operation: "Todas", types: [], cantons: [], bedrooms: 0, bathrooms: 0, parking: 0, amenities: [], sort: "recientes", saved: false, page: 1,
+  category: null, operation: "Todas", types: [], cantons: [], bedrooms: 0, bathrooms: 0, parking: 0, amenities: [], brands: [], sort: "recientes", saved: false, page: 1,
 };
 
 type Raw = Record<string, string | string[] | undefined>;
@@ -22,9 +22,22 @@ const num = (v: string | string[] | undefined, max: number) => {
   const n = Number(one(v));
   return Number.isFinite(n) && n > 0 ? Math.min(Math.floor(n), max) : undefined;
 };
+const oneOf = <T extends string>(allowed: readonly T[], v: string | undefined) => (allowed.includes(v as T) ? (v as T) : undefined);
+const categoryFromSlug = (slug: string | undefined): Category | null => CATEGORIES.find((c) => CATEGORY_SLUG[c] === slug) ?? null;
 
-/** Lee y sanea los query params. Los valores inválidos se ignoran. */
-export function parseSearchParams(sp: Raw, amenityNames: readonly string[] = [], locationNames: readonly string[] = CANTONS): SearchFilters {
+/**
+ * Lee y sanea los query params. Los valores inválidos se ignoran.
+ * Con una categoría elegida se descartan los filtros que no le aplican (p. ej. habitaciones en vehículos).
+ */
+export function parseSearchParams(
+  sp: Raw,
+  amenityNames: readonly string[] = [],
+  locationNames: readonly string[] = CANTONS,
+  brandNames: readonly string[] = [],
+): SearchFilters {
+  const category = categoryFromSlug(one(sp.cat));
+  const vehicle = category === "Vehículo";
+  const realEstate = category === "Inmueble";
   const op = one(sp.op);
   const q = one(sp.q)?.trim().slice(0, MAX_Q);
   const sort = one(sp.orden);
@@ -32,17 +45,25 @@ export function parseSearchParams(sp: Raw, amenityNames: readonly string[] = [],
   if (priceMin && priceMax && priceMin > priceMax) [priceMin, priceMax] = [priceMax, priceMin];
   let areaMin = num(sp.amin, 1e7), areaMax = num(sp.amax, 1e7);
   if (areaMin && areaMax && areaMin > areaMax) [areaMin, areaMax] = [areaMax, areaMin];
+  const yearMin = num(sp.anio, 2100);
   return {
-    operation: OPERATIONS.includes(op as Operation) ? (op as Operation) : "Todas",
-    types: pick<PropertyType>(TYPES, list(sp.tipo)),
-    // Solo ubicaciones conocidas (las que tienen propiedades o zona destacada): conjunto finito para la caché.
+    category,
+    operation: operationsOf(category).includes(op as Operation) ? (op as Operation) : "Todas",
+    types: pick<PropertyType>(typesOf(category), list(sp.tipo)),
+    // Solo ubicaciones conocidas (las que tienen anuncios o zona destacada): conjunto finito para la caché.
     cantons: pick<Canton>(locationNames, list(sp.canton)),
     priceMin, priceMax,
-    bedrooms: num(sp.hab, 10) ?? 0,
-    bathrooms: num(sp.banos, 10) ?? 0,
-    parking: num(sp.parqueos, 10) ?? 0,
-    areaMin, areaMax,
+    bedrooms: vehicle ? 0 : num(sp.hab, 10) ?? 0,
+    bathrooms: vehicle ? 0 : num(sp.banos, 10) ?? 0,
+    parking: vehicle ? 0 : num(sp.parqueos, 10) ?? 0,
+    areaMin: vehicle ? undefined : areaMin,
+    areaMax: vehicle ? undefined : areaMax,
     amenities: pick(amenityNames, list(sp.amen)),
+    brands: realEstate ? [] : pick(brandNames, list(sp.marca)),
+    yearMin: realEstate || !yearMin || yearMin < 1950 ? undefined : yearMin,
+    kmMax: realEstate ? undefined : num(sp.km, 5_000_000),
+    transmission: realEstate ? undefined : oneOf<Transmission>(TRANSMISSIONS, one(sp.trans)),
+    fuel: realEstate ? undefined : oneOf<Fuel>(FUELS, one(sp.comb)),
     q: q || undefined,
     sort: SORTS.includes(sort as SortOrder) ? (sort as SortOrder) : "recientes",
     saved: one(sp.guardadas) === "1",
@@ -53,6 +74,7 @@ export function parseSearchParams(sp: Raw, amenityNames: readonly string[] = [],
 /** Query string canónico (orden fijo, sin valores por defecto). */
 export function toQueryString(f: Partial<SearchFilters>) {
   const sp = new URLSearchParams();
+  if (f.category) sp.set("cat", CATEGORY_SLUG[f.category]);
   if (f.operation && f.operation !== "Todas") sp.set("op", f.operation);
   if (f.types?.length) sp.set("tipo", f.types.join(","));
   if (f.cantons?.length) sp.set("canton", f.cantons.join(","));
@@ -64,6 +86,11 @@ export function toQueryString(f: Partial<SearchFilters>) {
   if (f.areaMin) sp.set("amin", String(f.areaMin));
   if (f.areaMax) sp.set("amax", String(f.areaMax));
   if (f.amenities?.length) sp.set("amen", f.amenities.join(","));
+  if (f.brands?.length) sp.set("marca", f.brands.join(","));
+  if (f.yearMin) sp.set("anio", String(f.yearMin));
+  if (f.kmMax) sp.set("km", String(f.kmMax));
+  if (f.transmission) sp.set("trans", f.transmission);
+  if (f.fuel) sp.set("comb", f.fuel);
   if (f.q) sp.set("q", f.q);
   if (f.sort && f.sort !== "recientes") sp.set("orden", f.sort);
   if (f.saved) sp.set("guardadas", "1");
@@ -71,6 +98,9 @@ export function toQueryString(f: Partial<SearchFilters>) {
   return sp.toString();
 }
 
-/** Cantidad de filtros activos (para el contador del botón "Filtros"). */
+/** Cantidad de filtros activos (para el contador del botón "Filtros"). La categoría no cuenta: es la pestaña. */
 export const activeFilterCount = (f: SearchFilters) =>
-  [f.operation !== "Todas", f.types.length, f.cantons.length, f.priceMin || f.priceMax, f.bedrooms, f.bathrooms, f.parking, f.areaMin || f.areaMax, f.amenities.length, f.q, f.saved].filter(Boolean).length;
+  [
+    f.operation !== "Todas", f.types.length, f.cantons.length, f.priceMin || f.priceMax, f.bedrooms, f.bathrooms, f.parking,
+    f.areaMin || f.areaMax, f.amenities.length, f.brands.length, f.yearMin, f.kmMax, f.transmission, f.fuel, f.q, f.saved,
+  ].filter(Boolean).length;

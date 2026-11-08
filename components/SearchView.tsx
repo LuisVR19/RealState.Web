@@ -4,12 +4,15 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Fragment, useEffect, useRef, useState, useTransition, type MouseEvent } from "react";
 import type { Map as LeafletMap } from "leaflet";
-import { amenityIcon, crc, dots, matchingPreset, OP_LABEL, pricePresetsFor, priceSuffix, TYPES, TYPE_ICON, TYPE_PLURAL, waProperty } from "@/lib/format";
-import { propertyPath, searchPath } from "@/lib/routes";
+import {
+  amenityIcon, CATEGORIES, CATEGORY_ICON, CATEGORY_LABEL, crc, dots, FUELS, itemNoun, KM_PRESETS, matchingPreset, OP_LABEL, operationsOf,
+  pricePresetsFor, priceSuffix, TRANSMISSIONS, TYPE_ICON, TYPE_PLURAL, typesOf, waProperty, YEAR_PRESETS,
+} from "@/lib/format";
+import { CATALOG_PATH, propertyPath, searchPath } from "@/lib/routes";
 import type { Ad } from "@/lib/ads";
-import { activeFilterCount, PAGE_SIZE } from "@/lib/search-params";
+import { activeFilterCount, EMPTY_FILTERS, PAGE_SIZE } from "@/lib/search-params";
 import { track } from "@/lib/track";
-import type { Agent, Operation, PropertySummary, SearchFilters, SortOrder } from "@/lib/types";
+import type { Agent, Category, Operation, PropertySummary, SearchFilters, SortOrder } from "@/lib/types";
 import { Chip, toggle } from "./Chip";
 import { SponsoredCard } from "./Ads";
 import { PropertyCard } from "./PropertyCard";
@@ -29,6 +32,8 @@ interface Props {
   activeChips: { label: string; href: string }[];
   /** Tarjeta patrocinada de esta página (una como máximo), o null. */
   ad?: Ad | null;
+  /** Marcas de vehículos con anuncios (filtro de marca). */
+  brands?: string[];
 }
 
 const toAmount = (s: string) => {
@@ -40,7 +45,7 @@ const toAmount = (s: string) => {
  * Listado con mapa. Los filtros viven en la URL: cada cambio navega a la nueva búsqueda
  * (router.replace) y el servidor la resuelve con search_properties.
  */
-export function SearchView({ properties, total, agents, filters: f, activeChips, ad = null }: Props) {
+export function SearchView({ properties, total, agents, filters: f, activeChips, ad = null, brands = [] }: Props) {
   const { open, contact, locations } = useUI();
   const TEAM_CONTACT = contact.team;
   const router = useRouter();
@@ -86,17 +91,37 @@ export function SearchView({ properties, total, agents, filters: f, activeChips,
   const n = properties.length;
   const sel = selId ? properties.find((p) => p.id === selId) : null;
   const teamWa = waProperty(TEAM_CONTACT);
-  const presets = pricePresetsFor(f.operation);
-  const preset = matchingPreset(f.operation, f.priceMin, f.priceMax);
+  const presets = pricePresetsFor(f.operation, f.category);
+  const preset = matchingPreset(f.operation, f.priceMin, f.priceMax, f.category);
   const pages = Math.ceil(total / PAGE_SIZE);
   // Una sola tarjeta patrocinada por página, al final de los resultados; rota con el número de página.
   const sponsored = n > 0 ? ad : null;
   const filterCount = activeFilterCount(f);
+  const vehicle = f.category === "Vehículo";
+  const noun = (plural = true) => itemNoun(f.category, plural);
 
-  const opChips = (["Todas", "Venta", "Alquiler", "Vacacional", "Preventa"] as Op[]).map((k) => (
+  /** Cambiar de categoría: se conservan texto, ubicación y orden; el resto de filtros depende de la categoría. */
+  const setCategory = (c: Category | null) => {
+    if (c === f.category) return;
+    const sort = (c === "Vehículo" && f.sort === "area_desc") || (c !== "Vehículo" && (f.sort === "anio_desc" || f.sort === "km_asc")) ? "recientes" : f.sort;
+    startTransition(() => router.replace(searchPath({ ...EMPTY_FILTERS, category: c, q: f.q, cantons: f.cantons, sort, saved: f.saved }), { scroll: false }));
+  };
+  const categoryTabs = (
+    <div className="chip-row" role="tablist" aria-label="Categoría" style={{ flexWrap: "nowrap" }}>
+      <Chip label="Todo" icon="ph-squares-four" on={f.category === null} onClick={() => setCategory(null)} />
+      {CATEGORIES.map((c) => <Chip key={c} label={CATEGORY_LABEL[c]} icon={CATEGORY_ICON[c]} on={f.category === c} onClick={() => setCategory(c)} />)}
+    </div>
+  );
+
+  const opChips = (["Todas", ...operationsOf(f.category)] as Op[]).map((k) => (
     <Chip key={k} label={k === "Todas" ? "Todas" : OP_LABEL[k]} icon={f.operation === k ? "ph-check" : "ph-circle"} on={f.operation === k} onClick={() => apply({ operation: k })} />
   ));
-  const typeChips = TYPES.map((t) => <Chip key={t} label={TYPE_PLURAL[t]} icon={TYPE_ICON[t]} on={f.types.includes(t)} onClick={() => apply({ types: toggle(f.types, t) })} />);
+  const typeChips = typesOf(f.category).map((t) => <Chip key={t} label={TYPE_PLURAL[t]} icon={TYPE_ICON[t]} on={f.types.includes(t)} onClick={() => apply({ types: toggle(f.types, t) })} />);
+  const yearChips = [undefined, ...YEAR_PRESETS].map((y) => <Chip key={y ?? 0} label={y ? `${y} o más nuevo` : "Cualquiera"} icon="ph-calendar-blank" on={f.yearMin === y} onClick={() => apply({ yearMin: y })} />);
+  const kmChips = [undefined, ...KM_PRESETS].map((k) => <Chip key={k ?? 0} label={k ? `Hasta ${dots(k)} km` : "Cualquiera"} icon="ph-gauge" on={f.kmMax === k} onClick={() => apply({ kmMax: k })} />);
+  const transChips = TRANSMISSIONS.map((t) => <Chip key={t} label={t} icon="ph-steering-wheel" on={f.transmission === t} onClick={() => apply({ transmission: f.transmission === t ? undefined : t })} />);
+  const fuelChips = FUELS.map((t) => <Chip key={t} label={t} icon="ph-gas-pump" on={f.fuel === t} onClick={() => apply({ fuel: f.fuel === t ? undefined : t })} />);
+  const brandChips = brands.map((b) => <Chip key={b} label={b} icon="ph-tag" on={f.brands.includes(b)} onClick={() => apply({ brands: toggle(f.brands, b) })} />);
   const priceChips = presets.map((p) => {
     const on = preset?.label === p.label;
     return <Chip key={p.label} label={p.label} icon="ph-coins" on={on} onClick={() => apply(on ? { priceMin: undefined, priceMax: undefined } : { priceMin: p.min, priceMax: p.max })} />;
@@ -120,9 +145,11 @@ export function SearchView({ properties, total, agents, filters: f, activeChips,
 
   const quick: { key: Exclude<Pop, null>; label: string; on: boolean; title: string; chips: React.ReactNode; clear: () => void; isPrice?: boolean }[] = [
     { key: "op", label: f.operation === "Todas" ? "Operación" : OP_LABEL[f.operation], on: f.operation !== "Todas", title: "Operación", chips: opChips, clear: () => apply({ operation: "Todas" }) },
-    { key: "type", label: f.types.length ? (f.types.length === 1 ? TYPE_PLURAL[f.types[0]] : "Tipo · " + f.types.length) : "Tipo", on: f.types.length > 0, title: "Tipo de propiedad", chips: typeChips, clear: () => apply({ types: [] }) },
+    { key: "type", label: f.types.length ? (f.types.length === 1 ? TYPE_PLURAL[f.types[0]] : "Tipo · " + f.types.length) : "Tipo", on: f.types.length > 0, title: vehicle ? "Tipo de vehículo" : "Tipo", chips: typeChips, clear: () => apply({ types: [] }) },
     { key: "price", label: preset?.label ?? (f.priceMin || f.priceMax ? "Precio · rango" : "Precio"), on: !!(f.priceMin || f.priceMax), title: "Rango de precio (colones)", chips: priceChips, clear: () => apply({ priceMin: undefined, priceMax: undefined }), isPrice: true },
-    { key: "beds", label: f.bedrooms ? f.bedrooms + "+ hab." : "Habitaciones", on: f.bedrooms > 0, title: "Habitaciones", chips: numChips(f.bedrooms, "bedrooms", [0, 1, 2, 3, 4], "ph-bed"), clear: () => apply({ bedrooms: 0 }) },
+    vehicle
+      ? { key: "beds", label: f.yearMin ? `Desde ${f.yearMin}` : "Año", on: !!f.yearMin, title: "Año del vehículo", chips: yearChips, clear: () => apply({ yearMin: undefined }) }
+      : { key: "beds", label: f.bedrooms ? f.bedrooms + "+ hab." : "Habitaciones", on: f.bedrooms > 0, title: "Habitaciones", chips: numChips(f.bedrooms, "bedrooms", [0, 1, 2, 3, 4], "ph-bed"), clear: () => apply({ bedrooms: 0 }) },
   ];
   // En pantallas de menos de 1100px los filtros rápidos abren el panel lateral.
   const openQuick = (k: Exclude<Pop, null>) => {
@@ -130,15 +157,31 @@ export function SearchView({ properties, total, agents, filters: f, activeChips,
     else setPop(pop === k ? null : k);
   };
 
+  const amenityChips = (
+    <AmenityChips key="amen" category={vehicle ? "Vehículo" : "Inmueble"} selected={f.amenities} onToggle={(a) => apply({ amenities: toggle(f.amenities, a) })} />
+  );
+  // Sin categoría se muestran los filtros de inmueble (la mayoría del inventario); con "Vehículos", los suyos.
   const drawerGroups: [string, React.ReactNode, boolean?][] = [
+    ["Categoría", categoryTabs],
     ["Operación", opChips],
-    ["Tipo de propiedad", typeChips],
+    [vehicle ? "Tipo de vehículo" : "Tipo", typeChips],
     ["Ubicación", locations.map((c) => <Chip key={c} label={c} icon="ph-map-pin" on={f.cantons.includes(c)} onClick={() => apply({ cantons: toggle(f.cantons, c) })} />)],
     ["Precio (colones)", priceChips, true],
-    ["Habitaciones", numChips(f.bedrooms, "bedrooms", [0, 1, 2, 3, 4], "ph-bed")],
-    ["Baños", numChips(f.bathrooms, "bathrooms", [0, 1, 2, 3], "ph-bathtub")],
-    ["Parqueos", numChips(f.parking, "parking", [0, 1, 2, 3], "ph-car")],
-    ["Amenidades", <AmenityChips key="amen" selected={f.amenities} onToggle={(a) => apply({ amenities: toggle(f.amenities, a) })} />],
+    ...((vehicle
+      ? [
+          ...(brands.length ? [["Marca", brandChips]] : []),
+          ["Año", yearChips],
+          ["Kilometraje", kmChips],
+          ["Transmisión", transChips],
+          ["Combustible", fuelChips],
+          ["Equipamiento", amenityChips],
+        ]
+      : [
+          ["Habitaciones", numChips(f.bedrooms, "bedrooms", [0, 1, 2, 3, 4], "ph-bed")],
+          ["Baños", numChips(f.bathrooms, "bathrooms", [0, 1, 2, 3], "ph-bathtub")],
+          ["Parqueos", numChips(f.parking, "parking", [0, 1, 2, 3], "ph-car")],
+          ["Amenidades", amenityChips],
+        ]) as [string, React.ReactNode][]),
   ];
 
   const card = (p: PropertySummary) => <PropertyCard key={p.id} property={p} agent={agentOf(p.agentId)} active={hoverId === p.id || selId === p.id} onHover={setHoverId} />;
@@ -149,9 +192,10 @@ export function SearchView({ properties, total, agents, filters: f, activeChips,
       <div className="filter-bar">
         <form className="input-icon filter-search" role="search" onSubmit={(e) => { e.preventDefault(); apply({ q: q.trim().slice(0, 80) || undefined }); }}>
           <i className="ph ph-magnifying-glass" style={{ fontSize: 15 }} />
-          <input className="input" value={q} onChange={(e) => setQ(e.target.value)} maxLength={80} aria-label="Buscar por zona, barrio o código" placeholder="Zona, barrio o código" style={{ paddingLeft: 32, height: 38 }} />
+          <input className="input" value={q} onChange={(e) => setQ(e.target.value)} maxLength={80} aria-label="Buscar por zona, marca, modelo o código" placeholder={vehicle ? "Marca, modelo o código" : "Zona, barrio, marca o código"} style={{ paddingLeft: 32, height: 38 }} />
         </form>
         <div className="quick-filters">
+          <div className="qf-categories" style={{ flex: "none" }}>{categoryTabs}</div>
           {quick.map((qf) => (
             <div key={qf.key} style={{ position: "relative", flex: "none" }}>
               <button onClick={() => openQuick(qf.key)} className={`chip qf-btn${qf.on ? " is-on" : ""}`}>{qf.label}<i className="ph ph-caret-down" style={{ fontSize: 12 }} /></button>
@@ -180,17 +224,24 @@ export function SearchView({ properties, total, agents, filters: f, activeChips,
         <div className={`results${mView === "map" ? " is-hidden-mobile" : ""}`}>
           <div className="section-head">
             <div>
-              <h1 style={{ fontSize: 22, margin: "0 0 2px" }}>{total} {total === 1 ? "propiedad" : "propiedades"}</h1>
+              <h1 style={{ fontSize: 22, margin: "0 0 2px" }}>{total} {noun(total !== 1)}</h1>
               <div style={{ fontSize: 13, color: "var(--color-neutral-400)" }}>
-                {f.saved ? "Tus propiedades guardadas" : f.operation === "Todas" ? "Venta y alquiler" : OP_LABEL[f.operation]}{f.cantons.length ? ` en ${f.cantons.join(", ")}` : ""}
+                {f.saved ? "Tus anuncios guardados" : f.operation === "Todas" ? "Venta y alquiler" : OP_LABEL[f.operation]}{f.cantons.length ? ` en ${f.cantons.join(", ")}` : ""}
               </div>
             </div>
             <select className="input" aria-label="Ordenar" value={f.sort} onChange={(e) => apply({ sort: e.target.value as SortOrder })} style={{ width: "auto", height: 36, fontSize: 13 }}>
               <option value="recientes">Más recientes</option>
-              <option value="destacadas">Destacadas primero</option>
+              <option value="destacadas">Destacados primero</option>
               <option value="precio_asc">Menor precio</option>
               <option value="precio_desc">Mayor precio</option>
-              <option value="area_desc">Mayor área</option>
+              {vehicle ? (
+                <>
+                  <option value="anio_desc">Más nuevos</option>
+                  <option value="km_asc">Menos kilometraje</option>
+                </>
+              ) : (
+                <option value="area_desc">Mayor área</option>
+              )}
             </select>
           </div>
           {activeChips.length > 0 && (
@@ -207,7 +258,7 @@ export function SearchView({ properties, total, agents, filters: f, activeChips,
             <div className="help-banner">
               <div style={{ flex: "1 1 280px", display: "flex", flexDirection: "column", gap: 4 }}>
                 <span style={{ fontSize: 17, fontWeight: 500 }}>¿No encuentras lo que buscas?</span>
-                <span style={{ fontSize: 13, color: "var(--color-neutral-300)", textWrap: "pretty" }}>Cuéntale a un asesor qué necesitas. Te envía una selección por WhatsApp en menos de 24 horas, incluyendo propiedades que aún no están publicadas.</span>
+                <span style={{ fontSize: 13, color: "var(--color-neutral-300)", textWrap: "pretty" }}>Cuéntale a un asesor qué necesitas. Te envía una selección por WhatsApp en menos de 24 horas, incluyendo {vehicle ? "vehículos" : "opciones"} que aún no están publicados.</span>
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <a className="btn btn-primary" href={teamWa} target="_blank" rel="noopener" style={{ height: 40 }}><i className="ph ph-whatsapp-logo" style={{ fontSize: 17 }} />WhatsApp</a>
@@ -226,10 +277,10 @@ export function SearchView({ properties, total, agents, filters: f, activeChips,
           {n === 0 && !pending && (
             <div className="empty-state">
               <i className={`ph ${f.saved ? "ph-heart" : "ph-magnifying-glass"}`} style={{ fontSize: 30, color: "var(--color-neutral-500)" }} />
-              <span style={{ fontSize: 18, fontWeight: 500 }}>{f.saved ? "Todavía no has guardado propiedades" : "No hay propiedades con estos filtros"}</span>
-              <span style={{ fontSize: 14, color: "var(--color-neutral-400)", maxWidth: 420 }}>{f.saved ? "Toca el corazón de cualquier propiedad para guardarla aquí." : "Prueba ampliar el rango de precio o la zona. También puedes pedirle a un asesor que busque por ti."}</span>
+              <span style={{ fontSize: 18, fontWeight: 500 }}>{f.saved ? "Todavía no has guardado anuncios" : `No hay ${noun()} con estos filtros`}</span>
+              <span style={{ fontSize: 14, color: "var(--color-neutral-400)", maxWidth: 420 }}>{f.saved ? "Toca el corazón de cualquier anuncio para guardarlo aquí." : "Prueba ampliar el rango de precio o la zona. También puedes pedirle a un asesor que busque por ti."}</span>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <Link href="/propiedades" className="btn btn-secondary">{f.saved ? "Ver propiedades" : "Limpiar filtros"}</Link>
+                <Link href={f.saved || !f.category ? CATALOG_PATH : searchPath({ category: f.category })} className="btn btn-secondary">{f.saved ? "Ver catálogo" : "Limpiar filtros"}</Link>
                 <a className="btn btn-primary" href={teamWa} target="_blank" rel="noopener"><i className="ph ph-whatsapp-logo" style={{ fontSize: 17 }} />Pedir ayuda a un asesor</a>
               </div>
             </div>
@@ -283,14 +334,16 @@ export function SearchView({ properties, total, agents, filters: f, activeChips,
                   </div>
                 </Fragment>
               ))}
-              <div className="chip-group" style={{ gap: 10 }}>
-                <span className="chip-group-title">Espacio (m²)</span>
-                {rangeInputs("areaMin", "areaMax", ["Mínimo", "Máximo"], ["Ej. 100", "Sin límite"])}
-              </div>
+              {!vehicle && (
+                <div className="chip-group" style={{ gap: 10 }}>
+                  <span className="chip-group-title">Espacio (m²)</span>
+                  {rangeInputs("areaMin", "areaMax", ["Mínimo", "Máximo"], ["Ej. 100", "Sin límite"])}
+                </div>
+              )}
             </div>
             <div className="drawer-foot">
-              <Link href={f.saved ? searchPath({ saved: true }) : "/propiedades"} replace className="btn btn-ghost">Limpiar todo</Link>
-              <button className="btn btn-primary" onClick={() => setDrawer(false)} style={{ height: 42, padding: "0 20px" }}>Ver {total} propiedades</button>
+              <Link href={searchPath({ saved: f.saved, category: f.category })} replace className="btn btn-ghost">Limpiar todo</Link>
+              <button className="btn btn-primary" onClick={() => setDrawer(false)} style={{ height: 42, padding: "0 20px" }}>Ver {total} {noun(total !== 1)}</button>
             </div>
           </div>
         </div>
@@ -299,8 +352,8 @@ export function SearchView({ properties, total, agents, filters: f, activeChips,
   );
 }
 
-/** Amenidades del catálogo (vienen del layout por el contexto). */
-function AmenityChips({ selected, onToggle }: { selected: string[]; onToggle: (name: string) => void }) {
+/** Amenidades (inmueble) o equipamiento (vehículo) del catálogo; vienen del layout por el contexto. */
+function AmenityChips({ category, selected, onToggle }: { category: Category; selected: string[]; onToggle: (name: string) => void }) {
   const { amenities } = useUI();
-  return <>{amenities.map((a) => <Chip key={a.id} label={a.name} icon={amenityIcon(a.name)} on={selected.includes(a.name)} onClick={() => onToggle(a.name)} />)}</>;
+  return <>{amenities.filter((a) => a.category === category).map((a) => <Chip key={a.id} label={a.name} icon={amenityIcon(a.name)} on={selected.includes(a.name)} onClick={() => onToggle(a.name)} />)}</>;
 }

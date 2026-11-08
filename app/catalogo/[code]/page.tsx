@@ -14,10 +14,10 @@ import { PropertyDetailSkeleton } from "@/components/Skeletons";
 import { TrackView } from "@/components/TrackView";
 import { VisitScheduler } from "@/components/VisitScheduler";
 import { agentResolver, getActiveAds, getAgentOrTeam, getPropertyByCode, getPublishedProperties, getSimilarProperties } from "@/lib/data";
-import { amenityIcon, crc, decimal, dots, monthlyPayment, OP_LABEL, pricePeriod, priceSuffix, waProperty } from "@/lib/format";
+import { amenityIcon, crc, decimal, dots, isVehicle, monthlyPayment, OP_LABEL, pricePeriod, priceSuffix, vehicleName, waProperty } from "@/lib/format";
 import { agentPath, propertyPath } from "@/lib/routes";
 
-type Params = Pick<PageProps<"/propiedades/[code]">, "params">;
+type Params = Pick<PageProps<"/catalogo/[code]">, "params">;
 
 /** Códigos conocidos al compilar (solo el armazón de la página; el contenido se arma en cada visita). */
 export async function generateStaticParams() {
@@ -29,7 +29,7 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   await connection();
   const p = await getPropertyByCode((await params).code);
-  if (!p) return { title: "Propiedad no disponible · Thomas Mata S.A." };
+  if (!p) return { title: "Anuncio no disponible · Thomas Mata S.A." };
   const title = `${p.title} | Thomas Mata S.A.`;
   const description = `${p.zone}, ${p.canton} · ${crc(p.price)}${pricePeriod(p)}`;
   return {
@@ -55,9 +55,18 @@ async function PropertyDetail({ params }: Params) {
   const p = await getPropertyByCode((await params).code);
   if (!p) notFound();
   const [a, similar, agentOf, services] = await Promise.all([getAgentOrTeam(p.agentId), getSimilarProperties(p), agentResolver(), getActiveAds("detail_services", p.canton)]);
-  const showCalc = p.operation === "Venta" || p.operation === "Preventa";
+  const vehicle = isVehicle(p);
+  // La calculadora es de hipoteca: solo para inmuebles en venta o preventa.
+  const showCalc = !vehicle && (p.operation === "Venta" || p.operation === "Preventa");
 
-  const facts = [
+  const facts = (vehicle ? [
+    p.yearBuilt ? { icon: "ph-calendar-blank", v: p.yearBuilt, l: "Año" } : null,
+    p.mileageKm != null ? { icon: "ph-gauge", v: dots(p.mileageKm), l: "Kilómetros" } : null,
+    p.transmission ? { icon: "ph-steering-wheel", v: p.transmission, l: "Transmisión" } : null,
+    p.fuel ? { icon: "ph-gas-pump", v: p.fuel, l: "Combustible" } : null,
+    p.drivetrain ? { icon: "ph-jeep", v: p.drivetrain, l: "Tracción" } : null,
+    p.engineCc ? { icon: "ph-engine", v: dots(p.engineCc) + " cc", l: "Motor" } : null,
+  ] : [
     p.bedrooms ? { icon: "ph-bed", v: p.bedrooms, l: "Habitaciones" } : null,
     p.bathrooms ? { icon: "ph-bathtub", v: decimal(p.bathrooms), l: "Baños" } : null,
     p.areaM2 ? { icon: "ph-ruler", v: dots(p.areaM2) + " m²", l: p.type === "Terreno" ? "Área de lote" : "Construcción" } : null,
@@ -65,12 +74,16 @@ async function PropertyDetail({ params }: Params) {
     p.guests ? { icon: "ph-users", v: p.guests, l: "Huéspedes" } : null,
     p.delivery ? { icon: "ph-calendar", v: p.delivery.split(" ").at(-1), l: "Entrega" } : null,
     p.yearBuilt ? { icon: "ph-calendar-blank", v: p.yearBuilt, l: "Construcción" } : null,
-  ].filter((x) => x !== null);
+  ]).filter((x) => x !== null);
   const charac = (
     [
       ["Código", p.code],
       ["Tipo", p.type],
       ["Operación", OP_LABEL[p.operation]],
+      vehicle && p.brand ? ["Marca", p.brand] : null,
+      vehicle && p.model ? ["Modelo", p.model] : null,
+      vehicle && p.color ? ["Color", p.color] : null,
+      vehicle && p.doors ? ["Puertas", String(p.doors)] : null,
       ["Ubicación", [p.zone, p.canton, p.province, p.country].filter(Boolean).join(", ")],
       p.floor ? ["Piso", p.floor] : null,
       p.maintenanceFee ? ["Cuota de mantenimiento", crc(p.maintenanceFee) + "/mes"] : null,
@@ -78,7 +91,12 @@ async function PropertyDetail({ params }: Params) {
       ["Publicado", p.daysPublished === 1 ? "hace 1 día" : `hace ${p.daysPublished} días`],
     ] as ([string, string] | null)[]
   ).filter((x) => x !== null);
-  const steps = [
+  const steps = vehicle ? [
+    ["1. Agenda una cita", "Míralo en persona o por videollamada y coordina una prueba de manejo."],
+    ["2. Resuelve dudas", "Historial, mantenimientos, RTV, marchamo y estado del registro."],
+    ["3. Haz tu oferta", "Tu asesor negocia precio y condiciones con el dueño."],
+    ["4. Traspaso y entrega", "Coordinamos financiamiento, notario y el traspaso."],
+  ] : [
     ["1. Agenda la visita", "Elige día y hora. Presencial o por videollamada."],
     ["2. Resuelve dudas", "Planos, estudio registral, cuotas y costos de cierre."],
     ["3. Haz tu oferta", "Tu asesor negocia precio y condiciones con el propietario."],
@@ -99,6 +117,7 @@ async function PropertyDetail({ params }: Params) {
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 <span className="tag tag-neutral">{OP_LABEL[p.operation]}</span>
                 <span className="tag tag-neutral">{p.type}</span>
+                {vehicle && vehicleName(p) && <span className="tag tag-neutral">{vehicleName(p)}</span>}
                 {p.tag && <span className="tag tag-accent">{p.tag}</span>}
               </div>
               <h1 className="detail-title">{p.title}</h1>
@@ -135,7 +154,7 @@ async function PropertyDetail({ params }: Params) {
 
             {p.amenities.length > 0 && (
               <section className="stack-12">
-                <h2 className="h2-20">Amenidades</h2>
+                <h2 className="h2-20">{vehicle ? "Equipamiento" : "Amenidades"}</h2>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {p.amenities.map((x) => <span key={x} className="amenity"><i className={`ph ${amenityIcon(x)}`} />{x}</span>)}
                 </div>
@@ -145,7 +164,7 @@ async function PropertyDetail({ params }: Params) {
             <section className="stack-12">
               <h2 className="h2-20">Ubicación</h2>
               <DetailMap lat={p.lat} lng={p.lng} />
-              <span style={{ fontSize: 13, color: "var(--color-neutral-500)" }}>Zona aproximada. La dirección exacta se comparte al confirmar la visita.</span>
+              <span style={{ fontSize: 13, color: "var(--color-neutral-500)" }}>Zona aproximada. {vehicle ? "El lugar exacto para verlo se comparte al confirmar la cita." : "La dirección exacta se comparte al confirmar la visita."}</span>
             </section>
 
             {showCalc && <MortgageCalculator property={p} agent={a} />}
@@ -182,7 +201,7 @@ async function PropertyDetail({ params }: Params) {
         </div>
 
         <section className="stack-16">
-          <h2 className="h2-20">Propiedades similares</h2>
+          <h2 className="h2-20">{vehicle ? "Vehículos similares" : "Propiedades similares"}</h2>
           <div className="grid-cards-260">
             {similar.map((x) => <PropertyCard key={x.id} property={x} agent={agentOf(x.agentId)} />)}
           </div>

@@ -39,7 +39,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body>
         <UIProvider totalProperties={total} amenities={amenities} locations={locations} contact={contact}>
           {/* SiteHeader lee usePathname(): en rutas que se resuelven al pedirlas (p. ej. un 404 de
-              /propiedades/<código inválido>) Next exige un Suspense para no bloquear el prerender. */}
+              /catalogo/<código inválido>) Next exige un Suspense para no bloquear el prerender. */}
           <Suspense fallback={null}><SiteHeader /></Suspense>
           <Suspense fallback={null}><AuthNotice /></Suspense>
           {/* Medición anónima de uso (sin cookies): vistas de página y clics de contacto. */}

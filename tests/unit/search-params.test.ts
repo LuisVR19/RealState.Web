@@ -1,4 +1,4 @@
-// Los query params de /propiedades llegan de cualquiera: deben quedar acotados a listas cerradas
+// Los query params de /catalogo llegan de cualquiera: deben quedar acotados a listas cerradas
 // antes de tocar la base o la caché (cada combinación distinta es una entrada de caché).
 import { describe, expect, it } from "vitest";
 import { activeFilterCount, EMPTY_FILTERS, parseSearchParams, toQueryString } from "@/lib/search-params";
@@ -95,6 +95,36 @@ describe("toQueryString", () => {
     const qs = toQueryString({ q: "a&op=Venta#x" });
     expect(new URLSearchParams(qs).get("op")).toBeNull();
     expect(new URLSearchParams(qs).get("q")).toBe("a&op=Venta#x");
+  });
+});
+
+describe("vehículos", () => {
+  const BRANDS = ["Toyota", "Honda"];
+
+  it("lee la categoría y los filtros de vehículo", () => {
+    const f = parseSearchParams({ cat: "vehiculos", tipo: "Pickup,Casa", marca: "Honda,Tesla,Toyota", anio: "2018", km: "60000", trans: "Manual", comb: "Diésel" }, AMENITIES, undefined, BRANDS);
+    expect(f).toMatchObject({ category: "Vehículo", types: ["Pickup"], brands: ["Toyota", "Honda"], yearMin: 2018, kmMax: 60000, transmission: "Manual", fuel: "Diésel" });
+  });
+
+  it("con Vehículos descarta filtros de inmueble y operaciones que no aplican", () => {
+    const f = parseSearchParams({ cat: "vehiculos", hab: "3", banos: "2", amin: "100", op: "Preventa" }, AMENITIES);
+    expect(f).toMatchObject({ bedrooms: 0, bathrooms: 0, areaMin: undefined, operation: "Todas" });
+  });
+
+  it("con Inmuebles descarta filtros de vehículo", () => {
+    const f = parseSearchParams({ cat: "inmuebles", marca: "Toyota", km: "1000", trans: "Manual", tipo: "Carro,Casa" }, AMENITIES, undefined, BRANDS);
+    expect(f).toMatchObject({ category: "Inmueble", brands: [], kmMax: undefined, transmission: undefined, types: ["Casa"] });
+  });
+
+  it("ignora categoría, transmisión, combustible y año inválidos", () => {
+    const f = parseSearchParams({ cat: "barcos", trans: "Secuencial", comb: "Nuclear", anio: "1200" });
+    expect(f).toMatchObject({ category: null, transmission: undefined, fuel: undefined, yearMin: undefined });
+  });
+
+  it("ida y vuelta con filtros de vehículo", () => {
+    const f = parseSearchParams({ cat: "vehiculos", op: "Venta", marca: "Toyota", anio: "2020", km: "100000", trans: "Automática", comb: "Híbrido", orden: "km_asc" }, AMENITIES, undefined, BRANDS);
+    const back = parseSearchParams(Object.fromEntries(new URLSearchParams(toQueryString(f))), AMENITIES, undefined, BRANDS);
+    expect(back).toEqual(f);
   });
 });
 

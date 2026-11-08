@@ -6,7 +6,7 @@ import { PropertyCard } from "@/components/PropertyCard";
 import { ForYouSkeleton } from "@/components/Skeletons";
 import { getClientDashboard } from "@/lib/account";
 import { agentResolver } from "@/lib/data";
-import { dayParts, OP_LABEL, shortCrc, TYPE_PLURAL } from "@/lib/format";
+import { CATEGORY_LABEL, dayParts, dots, OP_LABEL, shortCrc, TYPE_PLURAL } from "@/lib/format";
 import type { VisitStatus } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Para ti · Thomas Mata S.A.", robots: { index: false } };
@@ -52,7 +52,7 @@ async function ForYou() {
       <div className="no-matches">
         <span style={{ fontSize: 17, fontWeight: 500 }}>Esta sección es para clientes</span>
         <span style={{ fontSize: 14, color: "var(--color-neutral-400)", maxWidth: 520 }}>Tu cuenta pertenece al equipo. Los clientes, sus coincidencias y sus visitas se gestionan desde el panel de asesores.</span>
-        <Link href="/propiedades" className="btn btn-secondary" style={{ height: 40, alignSelf: "flex-start" }}>Ver propiedades</Link>
+        <Link href="/catalogo" className="btn btn-secondary" style={{ height: 40, alignSelf: "flex-start" }}>Ver catálogo</Link>
       </div>
     );
   }
@@ -60,15 +60,18 @@ async function ForYou() {
   const { client: cl, matches, visits } = dash.data;
   const f = cl.preferences;
   const budget = f.budgetMin || f.budgetMax ? `${f.budgetMin ? shortCrc(f.budgetMin) : "₡0"} – ${f.budgetMax ? shortCrc(f.budgetMax) : "sin tope"}` : "Cualquier presupuesto";
-  const prefChips = [f.operation === "Todas" ? "Cualquier operación" : OP_LABEL[f.operation]].concat(
+  const prefChips = (f.category ? [CATEGORY_LABEL[f.category]] : []).concat(
+    [f.operation === "Todas" ? "Cualquier operación" : OP_LABEL[f.operation]],
     f.propertyTypes.length ? f.propertyTypes.map((t) => TYPE_PLURAL[t]) : ["Cualquier tipo"],
     f.cantons.length ? f.cantons : ["Cualquier ubicación"],
     [budget],
     f.minBedrooms ? [f.minBedrooms + "+ habitaciones"] : [],
     f.minBathrooms ? [f.minBathrooms + "+ baños"] : [],
+    f.minYear ? [`Año ${f.minYear} o más nuevo`] : [],
+    f.maxMileageKm ? [`Hasta ${dots(f.maxMileageKm)} km`] : [],
     f.requiredAmenities,
   );
-  const title = matches.length ? `${matches.length} ${matches.length === 1 ? "propiedad coincide" : "propiedades coinciden"} con lo que buscas` : `Hola, ${cl.name.split(" ")[0]}`;
+  const title = matches.length ? `${matches.length} ${matches.length === 1 ? "anuncio coincide" : "anuncios coinciden"} con lo que buscas` : `Hola, ${cl.name.split(" ")[0]}`;
 
   return (
     <>
@@ -99,7 +102,7 @@ async function ForYou() {
           <span style={{ fontSize: 14, color: "var(--color-neutral-400)", maxWidth: 520, textWrap: "pretty" }}>Tu asesor ya tiene tus preferencias y te avisará cuando entre algo nuevo. Puedes ampliar el presupuesto o las zonas para ver más opciones.</span>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
             <OpenDialogButton dialog={{ type: "prefs" }} className="btn btn-primary" style={{ height: 40 }}>Ajustar preferencias</OpenDialogButton>
-            <Link href="/propiedades" className="btn btn-secondary" style={{ height: 40 }}>Ver todas las propiedades</Link>
+            <Link href="/catalogo" className="btn btn-secondary" style={{ height: 40 }}>Ver todo el catálogo</Link>
           </div>
         </div>
       )}
@@ -113,7 +116,7 @@ async function ForYou() {
               <div className="date-badge"><span className="date-badge-dow">{d.dow}</span><span className="date-badge-num">{d.num}</span><span className="date-badge-mon">{d.mon}</span></div>
               <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>
                 <span style={{ fontSize: 14, fontWeight: 500, lineHeight: 1.3 }}>
-                  {v.property ? <Link href={`/propiedades/${v.property.code}`}>{v.property.title}</Link> : v.propertyId ? "Propiedad ya no disponible" : "Reunión con un asesor"}
+                  {v.property ? <Link href={`/catalogo/${v.property.code}`}>{v.property.title}</Link> : v.propertyId ? "Anuncio ya no disponible" : "Reunión con un asesor"}
                 </span>
                 <span style={{ fontSize: 12, color: "var(--color-neutral-400)" }}>{v.time} · {v.mode} · con {ag.isTeam ? "un asesor" : ag.firstName}</span>
               </div>

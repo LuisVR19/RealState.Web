@@ -30,6 +30,6 @@ export const config = {
   matcher: [
     "/para-ti/:path*",
     // El listado solo lee la sesión cuando se piden las guardadas.
-    { source: "/propiedades", has: [{ type: "query", key: "guardadas" }] },
+    { source: "/catalogo", has: [{ type: "query", key: "guardadas" }] },
   ],
 };

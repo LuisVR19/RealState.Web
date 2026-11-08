@@ -6,6 +6,11 @@ type Enums = Database["public"]["Enums"];
 
 export type Operation = Enums["property_operation"];
 export type PropertyType = Enums["property_type"];
+/** Inmueble o Vehículo (la base la deduce del tipo). */
+export type Category = Enums["listing_category"];
+export type Transmission = Enums["vehicle_transmission"];
+export type Fuel = Enums["vehicle_fuel"];
+export type Drivetrain = Enums["vehicle_drivetrain"];
 export type PropertyStatus = Enums["property_status"];
 /** Ciudad / cantón / municipio (texto libre: cualquier país). */
 export type Canton = string;
@@ -15,6 +20,8 @@ export type Amenity = string;
 export interface AmenityOption {
   id: string;
   name: string;
+  /** Amenidad de inmueble o equipamiento de vehículo. */
+  category: Category;
 }
 
 export interface AgentReview {
@@ -56,11 +63,12 @@ export interface SiteContact {
   team: Agent;
 }
 
-/** Datos de una propiedad suficientes para tarjetas, mapa y diálogos. */
+/** Datos de un anuncio (inmueble o vehículo) suficientes para tarjetas, mapa y diálogos. */
 export interface PropertySummary {
   id: string;
   code: string; // ej. "ISF-0001"
   title: string;
+  category: Category;
   operation: Operation;
   type: PropertyType;
   featured: boolean;
@@ -75,6 +83,14 @@ export interface PropertySummary {
   areaM2: number;
   parkingSpaces: number;
   guests?: number;
+  /** Año de construcción (inmueble) o año modelo (vehículo). */
+  yearBuilt?: number;
+  // Vehículo
+  brand?: string;
+  model?: string;
+  mileageKm?: number;
+  transmission?: Transmission;
+  fuel?: Fuel;
   agentId: string;
   images: string[]; // URLs completas; la primera es la portada
   daysPublished: number;
@@ -91,8 +107,12 @@ export interface Property extends PropertySummary {
   address: string;
   maintenanceFee?: number;
   floor?: string;
-  yearBuilt?: number;
   delivery?: string; // preventa, ej. "Diciembre 2027"
+  // Vehículo
+  drivetrain?: Drivetrain;
+  engineCc?: number;
+  color?: string;
+  doors?: number;
   amenities: Amenity[];
 }
 
@@ -107,6 +127,8 @@ export interface FeaturedZone {
 export type ClientStatus = Enums["client_status"];
 
 export interface ClientPreferences {
+  /** null = cualquiera. */
+  category: Category | null;
   operation: Operation | "Todas";
   propertyTypes: PropertyType[];
   cantons: Canton[];
@@ -117,6 +139,9 @@ export interface ClientPreferences {
   minParking: number;
   minAreaM2?: number;
   maxAreaM2?: number;
+  /** Vehículo: año mínimo y kilometraje máximo. */
+  minYear?: number;
+  maxMileageKm?: number;
   requiredAmenities: Amenity[];
   notes?: string;
 }
@@ -144,10 +169,12 @@ export interface Visit {
   status: VisitStatus;
 }
 
-export type SortOrder = "recientes" | "precio_asc" | "precio_desc" | "area_desc" | "destacadas";
+export type SortOrder = "recientes" | "precio_asc" | "precio_desc" | "area_desc" | "anio_desc" | "km_asc" | "destacadas";
 
-/** Filtros del listado. Se reflejan en los query params de /propiedades (ver lib/search-params.ts). */
+/** Filtros del listado. Se reflejan en los query params de /catalogo (ver lib/search-params.ts). */
 export interface SearchFilters {
+  /** null = inmuebles y vehículos. */
+  category: Category | null;
   operation: Operation | "Todas";
   types: PropertyType[];
   cantons: Canton[];
@@ -159,6 +186,12 @@ export interface SearchFilters {
   areaMin?: number;
   areaMax?: number;
   amenities: Amenity[];
+  // Vehículo
+  brands: string[];
+  yearMin?: number;
+  kmMax?: number;
+  transmission?: Transmission;
+  fuel?: Fuel;
   q?: string;
   sort: SortOrder;
   saved: boolean;

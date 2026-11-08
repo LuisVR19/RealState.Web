@@ -35,6 +35,14 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
+  // El inventario pasó de /propiedades a /catalogo (inmuebles y vehículos). 308 permanente: los enlaces
+  // ya compartidos y los buscadores llegan a la ruta nueva conservando los query params.
+  async redirects() {
+    return [
+      { source: "/propiedades", destination: "/catalogo", permanent: true },
+      { source: "/propiedades/:code", destination: "/catalogo/:code", permanent: true },
+    ];
+  },
 };
 
 export default nextConfig;

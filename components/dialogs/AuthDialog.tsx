@@ -103,7 +103,7 @@ export function AuthDialog({ initialMode }: { initialMode: "login" | "register" 
         <div className="dialog-head">
           <div className="dialog-head-text">
             <span className="dialog-title">{reg ? "Crea tu cuenta" : "Inicia sesión"}</span>
-            <span className="dialog-sub">{reg ? "Guarda tus preferencias y te mostramos solo las propiedades que encajan con lo que buscas." : "Entra para ver tus coincidencias y tus visitas."}</span>
+            <span className="dialog-sub">{reg ? "Guarda tus preferencias y te mostramos solo las propiedades o vehículos que encajan con lo que buscas." : "Entra para ver tus coincidencias y tus visitas."}</span>
           </div>
           <button type="button" className="btn btn-secondary btn-icon" onClick={close} aria-label="Cerrar"><i className="ph ph-x" style={{ fontSize: 16 }} /></button>
         </div>

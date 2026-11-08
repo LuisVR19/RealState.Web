@@ -33,7 +33,7 @@ export function ShareDialog({ property: p }: { property: PropertySummary }) {
     <div className="dialog-backdrop z-share" onClick={close}>
       <div className="dialog" data-property={p.id} onClick={(e) => e.stopPropagation()} style={{ width: "min(460px,100%)", maxHeight: "calc(100dvh - 32px)", overflowY: "auto", gap: 18, padding: 20 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-          <span className="dialog-title">Compartir propiedad</span>
+          <span className="dialog-title">Compartir anuncio</span>
           <button className="btn btn-secondary btn-icon" onClick={close} aria-label="Cerrar"><i className="ph ph-x" style={{ fontSize: 16 }} /></button>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>

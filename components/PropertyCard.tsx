@@ -33,7 +33,7 @@ export function PropertyCard({ property: p, agent: a, active, onHover }: Props) 
           <span className="tag tag-neutral">{OP_LABEL[p.operation]}</span>
           {p.tag && <span className="tag tag-accent">{p.tag}</span>}
         </div>
-        <button onClick={stop(() => void toggleFavorite(p.id))} aria-label={fav ? "Quitar de guardadas" : "Guardar propiedad"} aria-pressed={fav} className="pcard-fav" style={{ color: fav ? "var(--color-accent-300)" : "var(--color-text)" }}>
+        <button onClick={stop(() => void toggleFavorite(p.id))} aria-label={fav ? "Quitar de guardados" : "Guardar anuncio"} aria-pressed={fav} className="pcard-fav" style={{ color: fav ? "var(--color-accent-300)" : "var(--color-text)" }}>
           <i className={fav ? "ph-fill ph-heart" : "ph ph-heart"} style={{ fontSize: 18 }} />
         </button>
         {n > 1 && (

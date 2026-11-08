@@ -18,7 +18,7 @@ async function loadClient(supabase: Supabase, userId: string): Promise<Client | 
     .from("clients")
     .select(
       "id, name, email, phone, assigned_agent_id, status, " +
-        "client_preferences(operation, property_types, cantons, budget_min, budget_max, min_bedrooms, min_bathrooms, min_parking, min_area_m2, max_area_m2, notes), " +
+        "client_preferences(category, operation, property_types, cantons, budget_min, budget_max, min_bedrooms, min_bathrooms, min_parking, min_area_m2, max_area_m2, min_year, max_mileage_km, notes), " +
         "client_required_amenities(amenities(name))",
     )
     .eq("auth_user_id", userId)
@@ -26,6 +26,7 @@ async function loadClient(supabase: Supabase, userId: string): Promise<Client | 
       id: string; name: string; email: string | null; phone: string | null; assigned_agent_id: string | null;
       status: Client["status"];
       client_preferences: {
+        category: Client["preferences"]["category"]; min_year: number | null; max_mileage_km: number | null;
         operation: Client["preferences"]["operation"] | null; property_types: Client["preferences"]["propertyTypes"];
         cantons: Client["preferences"]["cantons"]; budget_min: number | null; budget_max: number | null;
         min_bedrooms: number | null; min_bathrooms: number | null; min_parking: number | null;
@@ -47,6 +48,7 @@ async function loadClient(supabase: Supabase, userId: string): Promise<Client | 
     assignedAgentId: c.assigned_agent_id,
     status: c.status,
     preferences: {
+      category: p?.category ?? null,
       operation: p?.operation ?? "Todas",
       propertyTypes: p?.property_types ?? [],
       cantons: p?.cantons ?? [],
@@ -57,6 +59,8 @@ async function loadClient(supabase: Supabase, userId: string): Promise<Client | 
       minParking: p?.min_parking ?? 0,
       minAreaM2: p?.min_area_m2 ?? undefined,
       maxAreaM2: p?.max_area_m2 ?? undefined,
+      minYear: p?.min_year ?? undefined,
+      maxMileageKm: p?.max_mileage_km ?? undefined,
       requiredAmenities: c.client_required_amenities.map((r) => r.amenities?.name).filter((n): n is string => !!n),
       notes: p?.notes ?? undefined,
     },

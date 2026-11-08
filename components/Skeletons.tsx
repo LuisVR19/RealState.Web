@@ -139,7 +139,7 @@ function TeamCardSkeleton() {
 
 export function SearchSkeleton() {
   return (
-    <Loading label="Buscando propiedades…" className="search">
+    <Loading label="Buscando anuncios…" className="search">
       <div className="filter-bar" aria-hidden>
         <Sk h={38} r="var(--radius-md)" className="filter-search" />
         <div className="quick-filters" style={{ overflow: "hidden" }}>
@@ -164,7 +164,7 @@ export function SearchSkeleton() {
 
 export function PropertyDetailSkeleton() {
   return (
-    <Loading label="Cargando propiedad…" className="detail">
+    <Loading label="Cargando anuncio…" className="detail">
       <div className="detail-bar" aria-hidden>
         <Sk w={96} h={38} r="var(--radius-md)" style={{ flex: "none" }} />
         <Sk w={260} h={12} style={{ marginLeft: 6, minWidth: 0 }} />

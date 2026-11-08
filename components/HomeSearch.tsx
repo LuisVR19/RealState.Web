@@ -2,15 +2,20 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { NAV_OPS, TYPES, TYPE_PLURAL } from "@/lib/format";
+import { CATEGORIES, CATEGORY_LABEL, categoryOf, NAV_OPS, TYPE_PLURAL, typesOf } from "@/lib/format";
 import { searchPath } from "@/lib/routes";
-import type { Operation, PropertyType } from "@/lib/types";
+import type { Category, Operation, PropertyType } from "@/lib/types";
 
-/** Buscador de la portada: lleva al listado con operación, texto y tipo. */
+/** Valor del selector: "" (todo), "cat:<categoría>" o un tipo. */
+type Pick = "" | `cat:${Category}` | PropertyType;
+
+/** Buscador de la portada: lleva al catálogo con operación, texto y categoría o tipo. */
 export function HomeSearch() {
   const [op, setOp] = useState<Operation>("Venta");
   const [q, setQ] = useState("");
-  const [tipo, setTipo] = useState<PropertyType | "">("");
+  const [pick, setPick] = useState<Pick>("");
+  const category: Category | null = pick.startsWith("cat:") ? (pick.slice(4) as Category) : pick ? categoryOf(pick as PropertyType) : null;
+  const types = pick && !pick.startsWith("cat:") ? [pick as PropertyType] : [];
   return (
     <div className="home-search">
       <div className="home-search-tabs">
@@ -21,13 +26,19 @@ export function HomeSearch() {
       <div className="home-search-row">
         <div className="input-icon" style={{ flex: "2 1 200px" }}>
           <i className="ph ph-map-pin" />
-          <input className="input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Zona o barrio: Paraíso, Orosi…" style={{ height: 44 }} />
+          <input className="input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Zona, marca o modelo: Paraíso, Toyota…" style={{ height: 44 }} />
         </div>
-        <select className="input" value={tipo} onChange={(e) => setTipo(e.target.value as PropertyType | "")} style={{ flex: "1 1 140px", height: 44, width: "auto" }}>
-          <option value="">Todos los tipos</option>
-          {TYPES.map((t) => <option key={t} value={t}>{TYPE_PLURAL[t]}</option>)}
+        <select className="input" aria-label="Qué buscas" value={pick} onChange={(e) => setPick(e.target.value as Pick)} style={{ flex: "1 1 140px", height: 44, width: "auto" }}>
+          <option value="">Propiedades y vehículos</option>
+          {CATEGORIES.map((c) => (
+            <optgroup key={c} label={CATEGORY_LABEL[c]}>
+              <option value={`cat:${c}`}>Todos los {CATEGORY_LABEL[c].toLowerCase()}</option>
+              {typesOf(c).map((t) => <option key={t} value={t}>{TYPE_PLURAL[t]}</option>)}
+            </optgroup>
+          ))}
         </select>
-        <Link href={searchPath({ operation: op, q: q.trim().slice(0, 80) || undefined, types: tipo ? [tipo] : [] })} className="btn btn-primary" style={{ flex: "0 0 auto", height: 44, padding: "0 20px", fontSize: 15 }}>
+        {/* Si la operación no aplica a la categoría (p. ej. preventa de vehículos), el catálogo la ignora. */}
+        <Link href={searchPath({ category, operation: op, q: q.trim().slice(0, 80) || undefined, types })} className="btn btn-primary" style={{ flex: "0 0 auto", height: 44, padding: "0 20px", fontSize: 15 }}>
           <i className="ph ph-magnifying-glass" style={{ fontSize: 17 }} />Buscar
         </Link>
       </div>

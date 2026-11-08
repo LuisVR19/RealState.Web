@@ -7,7 +7,7 @@ export default function NotFound() {
         <i className="ph ph-house-line" style={{ fontSize: 30, color: "var(--color-neutral-500)" }} />
         <span style={{ fontSize: 18, fontWeight: 500 }}>No encontramos esta página</span>
         <span style={{ fontSize: 14, color: "var(--color-neutral-400)" }}>Puede que la propiedad ya no esté publicada.</span>
-        <Link href="/propiedades" className="btn btn-primary">Ver propiedades</Link>
+        <Link href="/catalogo" className="btn btn-primary">Ver catálogo</Link>
       </div>
     </main>
   );

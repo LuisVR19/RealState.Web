@@ -3,19 +3,25 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
-import { initialsOf, NAV_OPS, waProperty } from "@/lib/format";
-import { searchPath } from "@/lib/routes";
+import { CATEGORY_SLUG, initialsOf, NAV_OPS, waProperty } from "@/lib/format";
+import { CATALOG_PATH, searchPath } from "@/lib/routes";
+
+const VEHICLES_SLUG = CATEGORY_SLUG["Vehículo"];
 import { useUI } from "./ui-provider";
 
 function NavItems({ onNavigate, mobile }: { onNavigate: () => void; mobile?: boolean }) {
   const pathname = usePathname();
-  const op = useSearchParams().get("op");
+  const sp = useSearchParams();
+  const op = sp.get("op");
+  const cat = sp.get("cat");
   const cls = mobile ? "menu-link" : "nav-link";
+  const inCatalog = pathname === CATALOG_PATH;
   return (
     <>
       {NAV_OPS.map(([label, k]) => (
-        <Link key={k} href={searchPath({ operation: k })} onClick={onNavigate} className={cls + (pathname === "/propiedades" && op === k ? " is-active" : "")}>{label}</Link>
+        <Link key={k} href={searchPath({ operation: k })} onClick={onNavigate} className={cls + (inCatalog && op === k && cat !== VEHICLES_SLUG ? " is-active" : "")}>{label}</Link>
       ))}
+      <Link href={searchPath({ category: "Vehículo" })} onClick={onNavigate} className={cls + (inCatalog && cat === VEHICLES_SLUG ? " is-active" : "")}>Vehículos</Link>
       <Link href="/#equipo" onClick={onNavigate} className={cls + (pathname.startsWith("/asesores") ? " is-active" : "")}>Nuestro equipo</Link>
     </>
   );
@@ -24,6 +30,7 @@ function NavItems({ onNavigate, mobile }: { onNavigate: () => void; mobile?: boo
 const NavFallback = ({ mobile }: { mobile?: boolean }) => (
   <>
     {NAV_OPS.map(([label, k]) => <Link key={k} href={searchPath({ operation: k })} className={mobile ? "menu-link" : "nav-link"}>{label}</Link>)}
+    <Link href={searchPath({ category: "Vehículo" })} className={mobile ? "menu-link" : "nav-link"}>Vehículos</Link>
     <Link href="/#equipo" className={mobile ? "menu-link" : "nav-link"}>Nuestro equipo</Link>
   </>
 );
@@ -36,8 +43,8 @@ export function SiteHeader() {
   const [menu, setMenu] = useState(false);
   const [acct, setAcct] = useState(false);
 
-  // La ficha de propiedad tiene su propia barra superior.
-  if (/^\/propiedades\/[^/]+/.test(pathname)) return null;
+  // La ficha de un anuncio tiene su propia barra superior.
+  if (/^\/catalogo\/[^/]+/.test(pathname)) return null;
 
   const teamWa = waProperty(contact.team);
   const closeAll = () => { setMenu(false); setAcct(false); };

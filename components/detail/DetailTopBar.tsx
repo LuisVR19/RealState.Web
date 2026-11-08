@@ -8,7 +8,7 @@ export function DetailTopBar({ property: p, crumb }: { property: PropertySummary
   const router = useRouter();
   const { open, favorites, toggleFavorite } = useUI();
   const fav = favorites.has(p.id);
-  const back = () => (window.history.length > 1 ? router.back() : router.push("/propiedades"));
+  const back = () => (window.history.length > 1 ? router.back() : router.push("/catalogo"));
   return (
     <div className="detail-bar">
       <button className="btn btn-secondary" onClick={back} style={{ height: 38 }}><i className="ph ph-arrow-left" style={{ fontSize: 16 }} />Volver</button>

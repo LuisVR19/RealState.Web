@@ -1,19 +1,54 @@
 import { Constants } from "./supabase/database.types";
-import type { Agent, Amenity, Canton, Operation, PropertySummary, PropertyType } from "./types";
+import type { Agent, Amenity, Canton, Category, Fuel, Operation, PropertySummary, PropertyType, Transmission } from "./types";
 
 export const OP_LABEL: Record<Operation, string> = { Venta: "Venta", Alquiler: "Alquiler", Vacacional: "Alquiler vacacional", Preventa: "Preventa" };
 export const OPERATIONS: readonly Operation[] = Constants.public.Enums.property_operation;
 export const TYPES: readonly PropertyType[] = Constants.public.Enums.property_type;
-export const TYPE_PLURAL: Record<PropertyType, string> = { Apartamento: "Apartamentos", Casa: "Casas", Terreno: "Terrenos", Local: "Locales", Oficina: "Oficinas", Bodega: "Bodegas" };
-export const TYPE_ICON: Record<PropertyType, string> = { Apartamento: "ph-buildings", Casa: "ph-house-line", Terreno: "ph-tree-evergreen", Local: "ph-storefront", Oficina: "ph-briefcase", Bodega: "ph-warehouse" };
-/** Icono por nombre de amenidad. Las que no estén aquí usan `ph-check`. */
-export const AMENITY_ICON: Record<Amenity, string> = { Piscina: "ph-swimming-pool", Gimnasio: "ph-barbell", "Seguridad 24h": "ph-shield-check", Jardín: "ph-plant", Terraza: "ph-sun-horizon", Amueblado: "ph-armchair", "Pet friendly": "ph-paw-print", "Área social": "ph-users-three", "Parqueo visitas": "ph-car", "Planta eléctrica": "ph-lightning" };
+export const TYPE_PLURAL: Record<PropertyType, string> = {
+  Apartamento: "Apartamentos", Casa: "Casas", Terreno: "Terrenos", Local: "Locales", Oficina: "Oficinas", Bodega: "Bodegas",
+  Carro: "Carros", Moto: "Motos", Pickup: "Pickups", Camión: "Camiones",
+};
+export const TYPE_ICON: Record<PropertyType, string> = {
+  Apartamento: "ph-buildings", Casa: "ph-house-line", Terreno: "ph-tree-evergreen", Local: "ph-storefront", Oficina: "ph-briefcase", Bodega: "ph-warehouse",
+  Carro: "ph-car-profile", Moto: "ph-motorcycle", Pickup: "ph-jeep", Camión: "ph-truck",
+};
+
+// -----------------------------------------------------------------------------
+// Categorías (inmueble / vehículo). Mismas reglas que public.type_category y el CHECK de la base.
+// -----------------------------------------------------------------------------
+export const CATEGORIES: readonly Category[] = Constants.public.Enums.listing_category;
+export const CATEGORY_LABEL: Record<Category, string> = { Inmueble: "Inmuebles", Vehículo: "Vehículos" };
+export const CATEGORY_ICON: Record<Category, string> = { Inmueble: "ph-house-line", Vehículo: "ph-car-profile" };
+/** Valor de ?cat= en la URL (sin tildes). */
+export const CATEGORY_SLUG: Record<Category, string> = { Inmueble: "inmuebles", Vehículo: "vehiculos" };
+const VEHICLE_TYPES: readonly PropertyType[] = ["Carro", "Moto", "Pickup", "Camión"];
+export const categoryOf = (t: PropertyType): Category => (VEHICLE_TYPES.includes(t) ? "Vehículo" : "Inmueble");
+export const isVehicle = (p: { type: PropertyType }) => categoryOf(p.type) === "Vehículo";
+export const typesOf = (c: Category | null) => (c ? TYPES.filter((t) => categoryOf(t) === c) : TYPES);
+/** Un vehículo solo se publica en venta o alquiler. */
+export const operationsOf = (c: Category | null): readonly Operation[] => (c === "Vehículo" ? ["Venta", "Alquiler"] : OPERATIONS);
+export const TRANSMISSIONS: readonly Transmission[] = Constants.public.Enums.vehicle_transmission;
+export const FUELS: readonly Fuel[] = Constants.public.Enums.vehicle_fuel;
+/** Filtros de vehículo con valores fijos: así la búsqueda se puede cachear (ver lib/data.ts). */
+export const YEAR_PRESETS: readonly number[] = [2010, 2015, 2018, 2020, 2022, 2024];
+export const KM_PRESETS: readonly number[] = [30_000, 60_000, 100_000, 150_000];
+/** Sustantivo según la categoría: "propiedad" / "vehículo"; sin categoría, "anuncio". */
+export const itemNoun = (c?: Category | null, plural = false) =>
+  c === "Vehículo" ? (plural ? "vehículos" : "vehículo") : c === "Inmueble" ? (plural ? "propiedades" : "propiedad") : plural ? "anuncios" : "anuncio";
+/** "Toyota Hilux SR" o "" si no hay marca ni modelo. */
+export const vehicleName = (p: { brand?: string; model?: string }) => [p.brand, p.model].filter(Boolean).join(" ");
+
+/** Icono por nombre de amenidad o equipamiento. Las que no estén aquí usan `ph-check`. */
+export const AMENITY_ICON: Record<Amenity, string> = {
+  Piscina: "ph-swimming-pool", Gimnasio: "ph-barbell", "Seguridad 24h": "ph-shield-check", Jardín: "ph-plant", Terraza: "ph-sun-horizon", Amueblado: "ph-armchair", "Pet friendly": "ph-paw-print", "Área social": "ph-users-three", "Parqueo visitas": "ph-car", "Planta eléctrica": "ph-lightning",
+  "Aire acondicionado": "ph-snowflake", "Cámara de retroceso": "ph-video-camera", "Sensores de parqueo": "ph-broadcast", Bluetooth: "ph-bluetooth", "Pantalla táctil": "ph-device-tablet", "Vidrios eléctricos": "ph-arrows-down-up", "Asientos de cuero": "ph-armchair", Sunroof: "ph-sun", "Aros de lujo": "ph-circle-dashed", "Único dueño": "ph-user-check", "Marchamo al día": "ph-seal-check", "RTV al día": "ph-clipboard-text",
+};
 export const amenityIcon = (a: Amenity) => AMENITY_ICON[a] ?? "ph-check";
 export const CANTONS: readonly Canton[] = ["Paraíso", "Cartago", "Oreamuno", "La Unión", "El Guarco", "Alvarado", "Jiménez", "Turrialba"];
 export const NAV_OPS: [string, Operation][] = [["Comprar", "Venta"], ["Alquilar", "Alquiler"], ["Vacacional", "Vacacional"], ["Preventa", "Preventa"]];
 
 export interface PricePreset { label: string; min?: number; max?: number }
-export const PRICE_PRESETS: Record<"sale" | "rent" | "vac", PricePreset[]> = {
+export const PRICE_PRESETS: Record<"sale" | "rent" | "vac" | "carSale" | "carRent", PricePreset[]> = {
   sale: [
     { label: "Hasta ₡100 M", max: 100_000_000 },
     { label: "₡100 – 200 M", min: 100_000_000, max: 200_000_000 },
@@ -29,11 +64,25 @@ export const PRICE_PRESETS: Record<"sale" | "rent" | "vac", PricePreset[]> = {
     { label: "Hasta ₡80 mil/noche", max: 80_000 },
     { label: "Más de ₡80 mil/noche", min: 80_000 },
   ],
+  carSale: [
+    { label: "Hasta ₡5 M", max: 5_000_000 },
+    { label: "₡5 – 10 M", min: 5_000_000, max: 10_000_000 },
+    { label: "₡10 – 20 M", min: 10_000_000, max: 20_000_000 },
+    { label: "Más de ₡20 M", min: 20_000_000 },
+  ],
+  carRent: [
+    { label: "Hasta ₡300 mil", max: 300_000 },
+    { label: "₡300 – 600 mil", min: 300_000, max: 600_000 },
+    { label: "Más de ₡600 mil", min: 600_000 },
+  ],
 };
-export const pricePresetsFor = (op: Operation | "Todas") => PRICE_PRESETS[op === "Alquiler" ? "rent" : op === "Vacacional" ? "vac" : "sale"];
+export const pricePresetsFor = (op: Operation | "Todas", category: Category | null = null) =>
+  category === "Vehículo"
+    ? PRICE_PRESETS[op === "Alquiler" ? "carRent" : "carSale"]
+    : PRICE_PRESETS[op === "Alquiler" ? "rent" : op === "Vacacional" ? "vac" : "sale"];
 /** Preset que coincide exactamente con el rango elegido, si hay uno. */
-export const matchingPreset = (op: Operation | "Todas", min?: number, max?: number) =>
-  pricePresetsFor(op).find((p) => p.min === min && p.max === max) ?? null;
+export const matchingPreset = (op: Operation | "Todas", min?: number, max?: number, category: Category | null = null) =>
+  pricePresetsFor(op, category).find((p) => p.min === min && p.max === max) ?? null;
 
 export const dots = (n: number) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 export const crc = (n: number) => "₡" + dots(n);
@@ -46,26 +95,34 @@ export const shortCrc = (n: number) => {
 };
 export const decimal = (n: number) => String(n).replace(".", ",");
 
-/** Texto que acompaña al precio: /mes, /noche o precio por m². */
+/** Texto que acompaña al precio: /mes, /noche o precio por m² (solo inmuebles). */
 export const priceSuffix = (p: PropertySummary) =>
-  p.operation === "Alquiler" ? "/mes" : p.operation === "Vacacional" ? "/noche" : p.areaM2 ? shortCrc(p.price / p.areaM2) + "/m²" : "";
+  p.operation === "Alquiler" ? "/mes" : p.operation === "Vacacional" ? "/noche" : !isVehicle(p) && p.areaM2 ? shortCrc(p.price / p.areaM2) + "/m²" : "";
 export const pricePeriod = (p: PropertySummary) => (p.operation === "Alquiler" ? "/mes" : p.operation === "Vacacional" ? "/noche" : "");
 
 export const specs = (p: PropertySummary) =>
-  [
-    p.bedrooms ? { icon: "ph-bed", label: `${p.bedrooms} hab.` } : null,
-    p.bathrooms ? { icon: "ph-bathtub", label: decimal(p.bathrooms) + (p.bathrooms === 1 ? " baño" : " baños") } : null,
-    p.areaM2 ? { icon: "ph-ruler", label: `${dots(p.areaM2)} m²` } : null,
-    p.guests ? { icon: "ph-users", label: `${p.guests} huésp.` } : null,
-  ].filter(Boolean) as { icon: string; label: string }[];
+  (isVehicle(p)
+    ? [
+        p.yearBuilt ? { icon: "ph-calendar-blank", label: String(p.yearBuilt) } : null,
+        p.mileageKm != null ? { icon: "ph-gauge", label: `${dots(p.mileageKm)} km` } : null,
+        p.transmission ? { icon: "ph-steering-wheel", label: p.transmission } : null,
+        p.fuel ? { icon: "ph-gas-pump", label: p.fuel } : null,
+      ]
+    : [
+        p.bedrooms ? { icon: "ph-bed", label: `${p.bedrooms} hab.` } : null,
+        p.bathrooms ? { icon: "ph-bathtub", label: decimal(p.bathrooms) + (p.bathrooms === 1 ? " baño" : " baños") } : null,
+        p.areaM2 ? { icon: "ph-ruler", label: `${dots(p.areaM2)} m²` } : null,
+        p.guests ? { icon: "ph-users", label: `${p.guests} huésp.` } : null,
+      ]
+  ).filter(Boolean) as { icon: string; label: string }[];
 
 export const waLink = (a: Pick<Agent, "whatsapp">, text: string) => `https://wa.me/${a.whatsapp}?text=${encodeURIComponent(text)}`;
 export const waProperty = (a: Agent, p?: PropertySummary | null) =>
   waLink(
     a,
     p
-      ? `Hola ${a.firstName}, me interesa la propiedad "${p.title}" (${p.code}) que vi en Thomas Mata S.A. ¿Sigue disponible?`
-      : "Hola, estoy buscando propiedad en Cartago y me gustaría que un asesor de Thomas Mata S.A. me ayude.",
+      ? `Hola ${a.firstName}, me interesa ${isVehicle(p) ? "el vehículo" : "la propiedad"} "${p.title}" (${p.code}) que vi en Thomas Mata S.A. ¿Sigue disponible?`
+      : "Hola, estoy buscando una propiedad o un vehículo y me gustaría que un asesor de Thomas Mata S.A. me ayude.",
   );
 
 export const initialsOf = (n: string) =>

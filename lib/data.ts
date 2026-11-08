@@ -11,7 +11,7 @@ import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { connection } from "next/server";
 import { adFromRow, type Ad, type AdPlacement } from "./ads";
-import { CANTONS, formatPhone, initialsOf, matchingPreset } from "./format";
+import { CANTONS, formatPhone, initialsOf, KM_PRESETS, matchingPreset, YEAR_PRESETS } from "./format";
 import { EMPTY_FILTERS, PAGE_SIZE } from "./search-params";
 import type { Database } from "./supabase/database.types";
 import { createPublicClient } from "./supabase/public";
@@ -45,6 +45,7 @@ function toSummary(r: SearchRow): PropertySummary {
     id: r.id,
     code: r.code,
     title: r.title,
+    category: r.category ?? "Inmueble",
     operation: r.operation,
     type: r.type,
     featured: r.featured,
@@ -59,6 +60,12 @@ function toSummary(r: SearchRow): PropertySummary {
     areaM2: Number(r.area_m2 ?? 0),
     parkingSpaces: r.parking_spaces ?? 0,
     guests: r.guests ?? undefined,
+    yearBuilt: r.year_built ?? undefined,
+    brand: r.brand ?? undefined,
+    model: r.model ?? undefined,
+    mileageKm: r.mileage_km ?? undefined,
+    transmission: r.transmission ?? undefined,
+    fuel: r.fuel ?? undefined,
     agentId: r.agent_id,
     images: r.image_urls ?? [],
     daysPublished: daysSince(r.published_at),
@@ -79,9 +86,26 @@ export async function getAmenities(): Promise<AmenityOption[]> {
   "use cache";
   cacheLife("hours");
   cacheTag(TAGS.amenities);
-  const { data, error } = await createPublicClient().from("amenities").select("id, name").order("name");
+  const { data, error } = await createPublicClient().from("amenities").select("id, name, category").order("name");
   if (error) fail("las amenidades", error);
   return data;
+}
+
+/**
+ * Marcas de vehículos con anuncios (rpc get_vehicle_brands, de más a menos anuncios). Es la lista cerrada
+ * contra la que se valida el filtro de marca, así que se cachea con las propiedades.
+ */
+export async function getVehicleBrands(): Promise<string[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(TAGS.properties);
+  const { data, error } = await createPublicClient().rpc("get_vehicle_brands");
+  // Sin marcas el sitio sigue funcionando: solo no se ofrece ese filtro.
+  if (error) {
+    console.error("[data] las marcas:", error.message);
+    return [];
+  }
+  return data.map((b) => b.brand);
 }
 
 export async function getFeaturedZones(): Promise<FeaturedZone[]> {
@@ -140,6 +164,12 @@ async function runSearch(f: SearchFilters, extra: Pick<SearchArgs, "p_ids" | "p_
     ? (await getAmenities()).filter((a) => f.amenities.includes(a.name)).map((a) => a.id)
     : undefined;
   const args: SearchArgs = {
+    p_category: f.category ?? undefined,
+    p_brands: f.brands.length ? f.brands : undefined,
+    p_min_year: f.yearMin,
+    p_max_mileage: f.kmMax,
+    p_transmission: f.transmission,
+    p_fuel: f.fuel,
     p_operation: f.operation === "Todas" ? undefined : f.operation,
     p_types: f.types.length ? f.types : undefined,
     p_cantons: f.cantons.length ? f.cantons : undefined,
@@ -164,7 +194,9 @@ async function runSearch(f: SearchFilters, extra: Pick<SearchArgs, "p_ids" | "p_
 
 const isCacheable = (f: SearchFilters) =>
   !f.q && f.areaMin === undefined && f.areaMax === undefined &&
-  ((f.priceMin === undefined && f.priceMax === undefined) || matchingPreset(f.operation, f.priceMin, f.priceMax) !== null);
+  (f.yearMin === undefined || YEAR_PRESETS.includes(f.yearMin)) &&
+  (f.kmMax === undefined || KM_PRESETS.includes(f.kmMax)) &&
+  ((f.priceMin === undefined && f.priceMax === undefined) || matchingPreset(f.operation, f.priceMin, f.priceMax, f.category) !== null);
 
 async function searchCached(f: SearchFilters): Promise<SearchResult> {
   "use cache";
@@ -232,6 +264,7 @@ async function getPropertyByCodeCached(code: string): Promise<Property | null> {
     .select(
       "id, code, title, description, operation, type, status, featured, tag, country, province, canton, zone, address, lat, lng, price, " +
         "maintenance_fee, bedrooms, bathrooms, area_m2, parking_spaces, year_built, guests, floor, delivery, agent_id, published_at, " +
+        "category, brand, model, mileage_km, transmission, fuel, drivetrain, engine_cc, color, doors, " +
         "property_images(url, position), property_amenities(amenities(name))",
     )
     .eq("code", code)
@@ -251,6 +284,7 @@ async function getPropertyByCodeCached(code: string): Promise<Property | null> {
     code: r.code,
     title: r.title,
     description: r.description,
+    category: r.category ?? "Inmueble",
     operation: r.operation,
     type: r.type,
     status: r.status,
@@ -273,6 +307,15 @@ async function getPropertyByCodeCached(code: string): Promise<Property | null> {
     guests: r.guests ?? undefined,
     floor: r.floor ?? undefined,
     delivery: r.delivery ?? undefined,
+    brand: r.brand ?? undefined,
+    model: r.model ?? undefined,
+    mileageKm: r.mileage_km ?? undefined,
+    transmission: r.transmission ?? undefined,
+    fuel: r.fuel ?? undefined,
+    drivetrain: r.drivetrain ?? undefined,
+    engineCc: r.engine_cc ?? undefined,
+    color: r.color ?? undefined,
+    doors: r.doors ?? undefined,
     agentId: r.agent_id,
     images: r.property_images.map((i) => i.url),
     amenities: r.property_amenities.map((pa) => pa.amenities?.name).filter((n): n is string => !!n).sort(),
@@ -286,11 +329,11 @@ export async function getFeaturedProperty(): Promise<PropertySummary | null> {
   return items.find((p) => p.featured) ?? items[0] ?? null;
 }
 
-/** Similares: misma operación o tipo, priorizando la misma operación y el precio más cercano. */
+/** Similares: misma categoría y misma operación o tipo, priorizando la misma operación y el precio más cercano. */
 export async function getSimilarProperties(p: PropertySummary, limit = 3): Promise<PropertySummary[]> {
   const { items } = await getPublishedProperties();
   return items
-    .filter((x) => x.id !== p.id && (x.operation === p.operation || x.type === p.type))
+    .filter((x) => x.id !== p.id && x.category === p.category && (x.operation === p.operation || x.type === p.type))
     .sort((x, y) => Number(y.operation === p.operation) - Number(x.operation === p.operation) || Math.abs(x.price - p.price) - Math.abs(y.price - p.price))
     .slice(0, limit);
 }

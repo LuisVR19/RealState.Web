@@ -2,11 +2,14 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { amenityIcon, OP_LABEL, pricePresetsFor, shortCrc, TYPES, TYPE_ICON, TYPE_PLURAL } from "@/lib/format";
+import {
+  amenityIcon, CATEGORIES, CATEGORY_ICON, CATEGORY_LABEL, dots, FUELS, itemNoun, KM_PRESETS, OP_LABEL, operationsOf, pricePresetsFor, shortCrc,
+  TRANSMISSIONS, TYPE_ICON, TYPE_PLURAL, typesOf, YEAR_PRESETS,
+} from "@/lib/format";
 import { searchPath } from "@/lib/routes";
 import { EMPTY_FILTERS } from "@/lib/search-params";
 import { createClient } from "@/lib/supabase/client";
-import type { Amenity, Canton, Operation, PropertyType, SearchFilters } from "@/lib/types";
+import type { Amenity, Canton, Category, Fuel, Operation, PropertyType, SearchFilters, Transmission } from "@/lib/types";
 import { Chip, ChipGroup, toggle } from "../Chip";
 import { useUI } from "../ui-provider";
 
@@ -22,6 +25,11 @@ export function WizardDialog() {
   const { close, account, amenities, locations, totalProperties } = useUI();
   const router = useRouter();
   const [step, setStep] = useState(0);
+  const [category, setCategory] = useState<Category>("Inmueble");
+  const [yearMin, setYearMin] = useState<number | undefined>();
+  const [kmMax, setKmMax] = useState<number | undefined>();
+  const [transmission, setTransmission] = useState<Transmission | undefined>();
+  const [fuel, setFuel] = useState<Fuel | undefined>();
   const [op, setOp] = useState<Op>("Venta");
   const [types, setTypes] = useState<PropertyType[]>([]);
   const [cantons, setCantons] = useState<Canton[]>([]);
@@ -37,26 +45,42 @@ export function WizardDialog() {
   const [count, setCount] = useState<number | null>(totalProperties);
   const [busy, setBusy] = useState(false);
 
-  const isRes = !types.length || types.some((t) => t === "Casa" || t === "Apartamento");
-  const presets = pricePresetsFor(op);
+  const vehicle = category === "Vehículo";
+  const isRes = !vehicle && (!types.length || types.some((t) => t === "Casa" || t === "Apartamento"));
+  const presets = pricePresetsFor(op, category);
   const pMin = toAmount(priceMin), pMax = toAmount(priceMax);
+  const catAmenities = amenities.filter((a) => a.category === category);
+
+  /** Cambiar de categoría: tipos y amenidades son de cada una; la operación debe ser válida. */
+  const pickCategory = (c: Category) => {
+    if (c === category) return;
+    setCategory(c);
+    setTypes([]);
+    setAmen([]);
+    if (op !== "Todas" && !operationsOf(c).includes(op)) setOp("Venta");
+  };
 
   const filters: SearchFilters = useMemo(
     () => ({
       ...EMPTY_FILTERS,
+      category,
       operation: op,
       types,
       cantons,
       bedrooms: isRes ? beds : 0,
       bathrooms: isRes ? baths : 0,
-      parking: park,
-      areaMin: toAmount(areaMin),
-      areaMax: toAmount(areaMax),
+      parking: vehicle ? 0 : park,
+      areaMin: vehicle ? undefined : toAmount(areaMin),
+      areaMax: vehicle ? undefined : toAmount(areaMax),
       priceMin: pMin,
       priceMax: pMax,
       amenities: amen,
+      yearMin: vehicle ? yearMin : undefined,
+      kmMax: vehicle ? kmMax : undefined,
+      transmission: vehicle ? transmission : undefined,
+      fuel: vehicle ? fuel : undefined,
     }),
-    [op, types, cantons, beds, baths, park, areaMin, areaMax, pMin, pMax, amen, isRes],
+    [category, op, types, cantons, beds, baths, park, areaMin, areaMax, pMin, pMax, amen, isRes, vehicle, yearMin, kmMax, transmission, fuel],
   );
 
   // Conteo real (search_properties con límite 1 devuelve total_count). Con espera para no consultar en cada tecla.
@@ -64,6 +88,11 @@ export function WizardDialog() {
     let cancelled = false;
     const t = setTimeout(async () => {
       const { data, error } = await createClient().rpc("search_properties", {
+        p_category: filters.category ?? undefined,
+        p_min_year: filters.yearMin,
+        p_max_mileage: filters.kmMax,
+        p_transmission: filters.transmission,
+        p_fuel: filters.fuel,
         p_operation: filters.operation === "Todas" ? undefined : filters.operation,
         p_types: filters.types.length ? filters.types : undefined,
         p_cantons: filters.cantons.length ? filters.cantons : undefined,
@@ -83,17 +112,25 @@ export function WizardDialog() {
   }, [filters, amenities]);
 
   const steps = [
-    { title: "¿Qué estás buscando?", sub: "Elige la operación y uno o varios tipos de propiedad." },
-    { title: "¿Dónde te gustaría vivir o invertir?", sub: "Puedes marcar varias ubicaciones. Si no marcas ninguna, buscamos en todas." },
-    { title: "¿Cuánto espacio necesitas?", sub: "Habitaciones, baños, parqueos y metros cuadrados." },
+    { title: "¿Qué estás buscando?", sub: "Elige si buscas una propiedad o un vehículo, la operación y uno o varios tipos." },
+    vehicle
+      ? { title: "¿Dónde lo buscas?", sub: "Puedes marcar varias ubicaciones. Si no marcas ninguna, buscamos en todas." }
+      : { title: "¿Dónde te gustaría vivir o invertir?", sub: "Puedes marcar varias ubicaciones. Si no marcas ninguna, buscamos en todas." },
+    vehicle
+      ? { title: "¿Cómo lo quieres?", sub: "Año, kilometraje, transmisión y combustible." }
+      : { title: "¿Cuánto espacio necesitas?", sub: "Habitaciones, baños, parqueos y metros cuadrados." },
     { title: "¿Cuál es tu presupuesto?", sub: op === "Alquiler" ? "Monto mensual en colones." : op === "Vacacional" ? "Monto por noche en colones." : "Precio total en colones." },
-    { title: "¿Algo imprescindible?", sub: "Solo mostraremos propiedades que tengan todo lo que marques." },
+    { title: "¿Algo imprescindible?", sub: `Solo mostraremos ${itemNoun(category, true)} que tengan todo lo que marques.` },
   ];
   const S = steps[step];
   const last = step === steps.length - 1;
   const budget = pMin || pMax ? `${pMin ? shortCrc(pMin) : "₡0"} – ${pMax ? shortCrc(pMax) : "sin tope"}` : null;
-  const summary = [op === "Todas" ? "Cualquier operación" : OP_LABEL[op]].concat(
+  const summary = [CATEGORY_LABEL[category], op === "Todas" ? "Cualquier operación" : OP_LABEL[op]].concat(
     types.length ? types.map((t) => TYPE_PLURAL[t]) : ["Cualquier tipo"],
+    filters.yearMin ? [`Desde ${filters.yearMin}`] : [],
+    filters.kmMax ? [`Hasta ${dots(filters.kmMax)} km`] : [],
+    filters.transmission ? [filters.transmission] : [],
+    filters.fuel ? [filters.fuel] : [],
     cantons.length ? cantons : ["Cualquier ubicación"],
     filters.bedrooms ? [filters.bedrooms + "+ hab."] : [],
     filters.bathrooms ? [filters.bathrooms + "+ baños"] : [],
@@ -120,8 +157,11 @@ export function WizardDialog() {
         p_min_parking: park,
         p_min_area_m2: filters.areaMin,
         p_max_area_m2: filters.areaMax,
-        p_amenity_ids: amenities.filter((a) => amen.includes(a.name)).map((a) => a.id),
+        p_amenity_ids: catAmenities.filter((a) => amen.includes(a.name)).map((a) => a.id),
         p_notes: current.data?.notes ?? undefined,
+        p_category: category,
+        p_min_year: filters.yearMin ?? null,
+        p_max_mileage_km: filters.kmMax ?? null,
       });
       if (error) console.error("[asistente] preferencias:", error.message);
     }
@@ -131,7 +171,9 @@ export function WizardDialog() {
 
   const nChips = (val: number, set: (n: number) => void, arr: number[], icon: string) =>
     arr.map((n) => <Chip key={n} size="lg" label={n ? n + "+" : "Cualquiera"} icon={icon} on={val === n} onClick={() => set(n)} />);
-  const countLabel = count === null ? "" : `${count} ${count === 1 ? "propiedad coincide" : "propiedades coinciden"}`;
+  const countLabel = count === null ? "" : `${count} ${itemNoun(category, count !== 1)} ${count === 1 ? "coincide" : "coinciden"}`;
+  const pickChips = <T,>(values: readonly T[], val: T | undefined, set: (v: T | undefined) => void, label: (v: T) => string, icon: string) =>
+    values.map((v) => <Chip key={String(v)} size="lg" label={label(v)} icon={icon} on={val === v} onClick={() => set(val === v ? undefined : v)} />);
 
   return (
     <div className="dialog-backdrop z-dialog" onClick={close}>
@@ -154,13 +196,16 @@ export function WizardDialog() {
         <div className="wiz-body">
           {step === 0 && (
             <>
+              <ChipGroup title="Busco">
+                {CATEGORIES.map((c) => <Chip key={c} size="lg" label={CATEGORY_LABEL[c]} icon={CATEGORY_ICON[c]} on={category === c} onClick={() => pickCategory(c)} />)}
+              </ChipGroup>
               <ChipGroup title="Operación">
-                {(["Venta", "Alquiler", "Vacacional", "Preventa", "Todas"] as Op[]).map((k) => (
+                {([...operationsOf(category), "Todas"] as Op[]).map((k) => (
                   <Chip key={k} size="lg" label={k === "Todas" ? "Cualquiera" : OP_LABEL[k]} icon={OP_ICON[k]} on={op === k} onClick={() => setOp(k)} />
                 ))}
               </ChipGroup>
-              <ChipGroup title="Tipo de propiedad">
-                {TYPES.map((t) => <Chip key={t} size="lg" label={TYPE_PLURAL[t]} icon={TYPE_ICON[t]} on={types.includes(t)} onClick={() => setTypes(toggle(types, t))} />)}
+              <ChipGroup title={vehicle ? "Tipo de vehículo" : "Tipo de propiedad"}>
+                {typesOf(category).map((t) => <Chip key={t} size="lg" label={TYPE_PLURAL[t]} icon={TYPE_ICON[t]} on={types.includes(t)} onClick={() => setTypes(toggle(types, t))} />)}
               </ChipGroup>
             </>
           )}
@@ -169,7 +214,15 @@ export function WizardDialog() {
               {locations.map((c) => <Chip key={c} size="lg" label={c} icon="ph-map-pin" on={cantons.includes(c)} onClick={() => setCantons(toggle(cantons, c))} />)}
             </ChipGroup>
           )}
-          {step === 2 && (
+          {step === 2 && vehicle && (
+            <>
+              <ChipGroup title="Año">{pickChips(YEAR_PRESETS, yearMin, setYearMin, (y) => `${y} o más nuevo`, "ph-calendar-blank")}</ChipGroup>
+              <ChipGroup title="Kilometraje">{pickChips(KM_PRESETS, kmMax, setKmMax, (k) => `Hasta ${dots(k)} km`, "ph-gauge")}</ChipGroup>
+              <ChipGroup title="Transmisión">{pickChips(TRANSMISSIONS, transmission, setTransmission, (t) => t, "ph-steering-wheel")}</ChipGroup>
+              <ChipGroup title="Combustible">{pickChips(FUELS, fuel, setFuel, (t) => t, "ph-gas-pump")}</ChipGroup>
+            </>
+          )}
+          {step === 2 && !vehicle && (
             <>
               {isRes && <ChipGroup title="Habitaciones">{nChips(beds, setBeds, [0, 1, 2, 3, 4], "ph-bed")}</ChipGroup>}
               {isRes && <ChipGroup title="Baños">{nChips(baths, setBaths, [0, 1, 2, 3], "ph-bathtub")}</ChipGroup>}
@@ -202,8 +255,8 @@ export function WizardDialog() {
           )}
           {step === 4 && (
             <>
-              <ChipGroup title="Amenidades">
-                {amenities.map((a) => <Chip key={a.id} size="lg" label={a.name} icon={amenityIcon(a.name)} on={amen.includes(a.name)} onClick={() => setAmen(toggle(amen, a.name))} />)}
+              <ChipGroup title={vehicle ? "Equipamiento" : "Amenidades"}>
+                {catAmenities.map((a) => <Chip key={a.id} size="lg" label={a.name} icon={amenityIcon(a.name)} on={amen.includes(a.name)} onClick={() => setAmen(toggle(amen, a.name))} />)}
               </ChipGroup>
               <div className="wiz-summary">
                 <span style={{ fontSize: 13, fontWeight: 500 }}>Tu búsqueda</span>
@@ -227,7 +280,7 @@ export function WizardDialog() {
             </>
           ) : (
             <button className="btn btn-primary" onClick={finish} disabled={busy} style={{ height: 42, padding: "0 18px" }}>
-              <i className="ph ph-magnifying-glass" style={{ fontSize: 16 }} />Ver {count ?? ""} propiedades
+              <i className="ph ph-magnifying-glass" style={{ fontSize: 16 }} />Ver {count ?? ""} {itemNoun(category, count !== 1)}
             </button>
           )}
         </div>
