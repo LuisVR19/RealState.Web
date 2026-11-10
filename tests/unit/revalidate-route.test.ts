@@ -71,7 +71,7 @@ describe("etiquetas", () => {
   it("descarta etiquetas desconocidas o con formato inválido", async () => {
     const res = await POST(req({ auth, body: { tags: ["properties", "property:ISF-0001", "property:../../x", "users", "property:ISF-1", 42, null, "PROPERTIES"] } }));
     expect((await res.json()).revalidated).toEqual(["properties", "property:ISF-0001"]);
-    expect(revalidateTag).toHaveBeenCalledWith("property:ISF-0001", "max");
+    expect(revalidateTag).toHaveBeenCalledWith("property:ISF-0001", { expire: 0 });
   });
 
   it("limita a 50 etiquetas por petición", async () => {

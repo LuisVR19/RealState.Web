@@ -31,7 +31,9 @@ export async function POST(request: NextRequest) {
     // Sin cuerpo JSON: se revalida todo.
   }
 
-  // 'max': los visitantes siguen viendo la versión anterior mientras se recarga en segundo plano.
-  tags.forEach((t) => revalidateTag(t, "max"));
+  // { expire: 0 }: la siguiente visita recalcula en línea. No se usa 'max' (stale-while-revalidate):
+  // en Cloudflare la regeneración en segundo plano de OpenNext se queda colgada y el sitio seguía
+  // sirviendo para siempre la versión anterior (p. ej. 0 vehículos en la portada tras publicarlos).
+  tags.forEach((t) => revalidateTag(t, { expire: 0 }));
   return NextResponse.json({ revalidated: tags });
 }
