@@ -66,6 +66,7 @@ function toSummary(r: SearchRow): PropertySummary {
     mileageKm: r.mileage_km ?? undefined,
     transmission: r.transmission ?? undefined,
     fuel: r.fuel ?? undefined,
+    serviceRate: r.service_rate ?? undefined,
     agentId: r.agent_id,
     images: r.image_urls ?? [],
     daysPublished: daysSince(r.published_at),
@@ -264,7 +265,7 @@ async function getPropertyByCodeCached(code: string): Promise<Property | null> {
     .select(
       "id, code, title, description, operation, type, status, featured, tag, country, province, canton, zone, address, lat, lng, price, " +
         "maintenance_fee, bedrooms, bathrooms, area_m2, parking_spaces, year_built, guests, floor, delivery, agent_id, published_at, " +
-        "category, brand, model, mileage_km, transmission, fuel, drivetrain, engine_cc, color, doors, " +
+        "category, brand, model, mileage_km, transmission, fuel, drivetrain, engine_cc, color, doors, service_rate, " +
         "property_images(url, position), property_amenities(amenities(name))",
     )
     .eq("code", code)
@@ -312,6 +313,7 @@ async function getPropertyByCodeCached(code: string): Promise<Property | null> {
     mileageKm: r.mileage_km ?? undefined,
     transmission: r.transmission ?? undefined,
     fuel: r.fuel ?? undefined,
+    serviceRate: r.service_rate ?? undefined,
     drivetrain: r.drivetrain ?? undefined,
     engineCc: r.engine_cc ?? undefined,
     color: r.color ?? undefined,

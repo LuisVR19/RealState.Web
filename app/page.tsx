@@ -10,7 +10,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { HomeSkeleton } from "@/components/Skeletons";
 import { pickAd } from "@/lib/ads";
 import { agentResolver, getActiveAds, getAgents, getFeaturedProperty, getFeaturedZones, getPublishedProperties, getSiteContact } from "@/lib/data";
-import { CATEGORIES, CATEGORY_ICON, CATEGORY_LABEL, crc, TYPES, TYPE_ICON, TYPE_PLURAL, waProperty } from "@/lib/format";
+import { CATEGORIES, CATEGORY_ICON, CATEGORY_LABEL, categoryOf, priceLine, TYPES, TYPE_ICON, TYPE_PLURAL, waProperty } from "@/lib/format";
 import { agentPath, propertyPath, searchPath } from "@/lib/routes";
 
 const STEPS = [
@@ -57,7 +57,7 @@ async function HomeContent() {
             <div className="lighten fill"><img src={img(hero.images[0], 1600)} alt={hero.title} /></div>
             <div className="hero-card-info">
               <span className="eyebrow" style={{ fontSize: 11, letterSpacing: ".1em" }}>Destacada</span>
-              <span style={{ fontSize: 20, fontWeight: 500, letterSpacing: "-0.02em" }}>{crc(hero.price)}</span>
+              <span style={{ fontSize: 20, fontWeight: 500, letterSpacing: "-0.02em" }}>{priceLine(hero)}</span>
               <span style={{ fontSize: 13, color: "var(--color-neutral-300)" }}>{hero.title}</span>
               <span className="arrow-link" style={{ marginTop: 4 }}>Ver detalle<i className="ph ph-arrow-right" /></span>
             </div>
@@ -76,7 +76,8 @@ async function HomeContent() {
                 </span>
               </Link>
             ))}
-            {TYPES.map((t) => (
+            {/* Los 14 tipos de servicio solo aparecen cuando tienen anuncios (la tarjeta "Todos los servicios" siempre está). */}
+            {TYPES.filter((t) => categoryOf(t) !== "Servicio" || props.some((p) => p.type === t)).map((t) => (
               <Link key={t} href={searchPath({ types: [t] })} className="cat-card">
                 <i className={`ph ${TYPE_ICON[t]}`} />
                 <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>

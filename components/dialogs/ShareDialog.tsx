@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { img } from "@/lib/img";
-import { crc, decimal, pricePeriod } from "@/lib/format";
+import { decimal, priceLine } from "@/lib/format";
 import { propertyPath } from "@/lib/routes";
 import type { PropertySummary } from "@/lib/types";
 import { useUI } from "../ui-provider";
@@ -15,7 +15,7 @@ export function ShareDialog({ property: p }: { property: PropertySummary }) {
     if (!process.env.NEXT_PUBLIC_SITE_URL) setUrl(window.location.origin + propertyPath(p));
   }, [p]);
 
-  const price = crc(p.price) + pricePeriod(p);
+  const price = priceLine(p);
   const desc =
     [p.operation === "Vacacional" ? "Alquiler vacacional" : p.operation, p.type, p.bedrooms ? `${p.bedrooms} hab.` : null, p.bathrooms ? `${decimal(p.bathrooms)} baños` : null, p.areaM2 ? `${p.areaM2} m²` : null]
       .filter(Boolean)

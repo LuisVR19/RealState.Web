@@ -7,6 +7,7 @@ import { CATEGORY_SLUG, initialsOf, NAV_OPS, waProperty } from "@/lib/format";
 import { CATALOG_PATH, searchPath } from "@/lib/routes";
 
 const VEHICLES_SLUG = CATEGORY_SLUG["Vehículo"];
+const SERVICES_SLUG = CATEGORY_SLUG["Servicio"];
 import { useUI } from "./ui-provider";
 
 function NavItems({ onNavigate, mobile }: { onNavigate: () => void; mobile?: boolean }) {
@@ -19,9 +20,10 @@ function NavItems({ onNavigate, mobile }: { onNavigate: () => void; mobile?: boo
   return (
     <>
       {NAV_OPS.map(([label, k]) => (
-        <Link key={k} href={searchPath({ operation: k })} onClick={onNavigate} className={cls + (inCatalog && op === k && cat !== VEHICLES_SLUG ? " is-active" : "")}>{label}</Link>
+        <Link key={k} href={searchPath({ operation: k })} onClick={onNavigate} className={cls + (inCatalog && op === k && cat !== VEHICLES_SLUG && cat !== SERVICES_SLUG ? " is-active" : "")}>{label}</Link>
       ))}
       <Link href={searchPath({ category: "Vehículo" })} onClick={onNavigate} className={cls + (inCatalog && cat === VEHICLES_SLUG ? " is-active" : "")}>Vehículos</Link>
+      <Link href={searchPath({ category: "Servicio" })} onClick={onNavigate} className={cls + (inCatalog && cat === SERVICES_SLUG ? " is-active" : "")}>Servicios</Link>
       <Link href="/#equipo" onClick={onNavigate} className={cls + (pathname.startsWith("/asesores") ? " is-active" : "")}>Nuestro equipo</Link>
     </>
   );
@@ -31,6 +33,7 @@ const NavFallback = ({ mobile }: { mobile?: boolean }) => (
   <>
     {NAV_OPS.map(([label, k]) => <Link key={k} href={searchPath({ operation: k })} className={mobile ? "menu-link" : "nav-link"}>{label}</Link>)}
     <Link href={searchPath({ category: "Vehículo" })} className={mobile ? "menu-link" : "nav-link"}>Vehículos</Link>
+    <Link href={searchPath({ category: "Servicio" })} className={mobile ? "menu-link" : "nav-link"}>Servicios</Link>
     <Link href="/#equipo" className={mobile ? "menu-link" : "nav-link"}>Nuestro equipo</Link>
   </>
 );

@@ -662,6 +662,7 @@ export type Database = {
           drivetrain: Database["public"]["Enums"]["vehicle_drivetrain"] | null
           engine_cc: number | null
           fuel: Database["public"]["Enums"]["vehicle_fuel"] | null
+          service_rate: Database["public"]["Enums"]["service_rate"] | null
           mileage_km: number | null
           model: string | null
           transmission: Database["public"]["Enums"]["vehicle_transmission"] | null
@@ -706,6 +707,7 @@ export type Database = {
           drivetrain?: Database["public"]["Enums"]["vehicle_drivetrain"] | null
           engine_cc?: number | null
           fuel?: Database["public"]["Enums"]["vehicle_fuel"] | null
+          service_rate?: Database["public"]["Enums"]["service_rate"] | null
           mileage_km?: number | null
           model?: string | null
           transmission?: Database["public"]["Enums"]["vehicle_transmission"] | null
@@ -750,6 +752,7 @@ export type Database = {
           drivetrain?: Database["public"]["Enums"]["vehicle_drivetrain"] | null
           engine_cc?: number | null
           fuel?: Database["public"]["Enums"]["vehicle_fuel"] | null
+          service_rate?: Database["public"]["Enums"]["service_rate"] | null
           mileage_km?: number | null
           model?: string | null
           transmission?: Database["public"]["Enums"]["vehicle_transmission"] | null
@@ -1199,6 +1202,7 @@ export type Database = {
           brand: string | null
           category: Database["public"]["Enums"]["listing_category"]
           fuel: Database["public"]["Enums"]["vehicle_fuel"] | null
+          service_rate: Database["public"]["Enums"]["service_rate"] | null
           mileage_km: number | null
           model: string | null
           transmission: Database["public"]["Enums"]["vehicle_transmission"] | null
@@ -1243,14 +1247,14 @@ export type Database = {
         | "Negociando"
         | "Cerrado"
         | "Inactivo"
-      listing_category: "Inmueble" | "Vehículo"
+      listing_category: "Inmueble" | "Vehículo" | "Servicio"
       preference_operation:
         | "Venta"
         | "Alquiler"
         | "Vacacional"
         | "Preventa"
         | "Todas"
-      property_operation: "Venta" | "Alquiler" | "Vacacional" | "Preventa"
+      property_operation: "Venta" | "Alquiler" | "Vacacional" | "Preventa" | "Servicio"
       property_status:
         | "Borrador"
         | "Publicada"
@@ -1268,6 +1272,21 @@ export type Database = {
         | "Moto"
         | "Pickup"
         | "Camión"
+        | "Mantenimiento y reparaciones"
+        | "Construcción y remodelación"
+        | "Limpieza"
+        | "Mudanzas y fletes"
+        | "Jardinería"
+        | "Legal y notarial"
+        | "Contabilidad"
+        | "Diseño web"
+        | "Desarrollo de software"
+        | "Marketing digital"
+        | "Diseño gráfico"
+        | "Fotografía y video"
+        | "Clases y tutorías"
+        | "Otro servicio"
+      service_rate: "Precio fijo" | "Por hora" | "Por proyecto" | "A convenir"
       vehicle_drivetrain: "4x2" | "4x4" | "AWD"
       vehicle_fuel: "Gasolina" | "Diésel" | "Híbrido" | "Eléctrico" | "Gas LP"
       vehicle_transmission: "Manual" | "Automática"
@@ -1412,7 +1431,7 @@ export const Constants = {
         "Cerrado",
         "Inactivo",
       ],
-      listing_category: ["Inmueble", "Vehículo"],
+      listing_category: ["Inmueble", "Vehículo", "Servicio"],
       preference_operation: [
         "Venta",
         "Alquiler",
@@ -1420,7 +1439,7 @@ export const Constants = {
         "Preventa",
         "Todas",
       ],
-      property_operation: ["Venta", "Alquiler", "Vacacional", "Preventa"],
+      property_operation: ["Venta", "Alquiler", "Vacacional", "Preventa", "Servicio"],
       property_status: [
         "Borrador",
         "Publicada",
@@ -1439,7 +1458,22 @@ export const Constants = {
         "Moto",
         "Pickup",
         "Camión",
+        "Mantenimiento y reparaciones",
+        "Construcción y remodelación",
+        "Limpieza",
+        "Mudanzas y fletes",
+        "Jardinería",
+        "Legal y notarial",
+        "Contabilidad",
+        "Diseño web",
+        "Desarrollo de software",
+        "Marketing digital",
+        "Diseño gráfico",
+        "Fotografía y video",
+        "Clases y tutorías",
+        "Otro servicio",
       ],
+      service_rate: ["Precio fijo", "Por hora", "Por proyecto", "A convenir"],
       vehicle_drivetrain: ["4x2", "4x4", "AWD"],
       vehicle_fuel: ["Gasolina", "Diésel", "Híbrido", "Eléctrico", "Gas LP"],
       vehicle_transmission: ["Manual", "Automática"],

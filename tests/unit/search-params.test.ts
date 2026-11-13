@@ -128,6 +128,28 @@ describe("vehículos", () => {
   });
 });
 
+describe("servicios", () => {
+  it("lee la categoría y solo tipos de servicio", () => {
+    const f = parseSearchParams({ cat: "servicios", tipo: "Diseño web,Casa,Carro,Contabilidad" }, AMENITIES);
+    expect(f).toMatchObject({ category: "Servicio", types: ["Contabilidad", "Diseño web"] });
+  });
+
+  it("con Servicios descarta filtros de inmueble y de vehículo", () => {
+    const f = parseSearchParams({ cat: "servicios", hab: "3", amin: "100", marca: "Toyota", anio: "2020", km: "1000", trans: "Manual", op: "Venta" }, AMENITIES, undefined, ["Toyota"]);
+    expect(f).toMatchObject({ bedrooms: 0, areaMin: undefined, brands: [], yearMin: undefined, kmMax: undefined, transmission: undefined, operation: "Todas" });
+  });
+
+  it("sin categoría no acepta la operación Servicio (se elige con la pestaña)", () => {
+    expect(parseSearchParams({ op: "Servicio" }).operation).toBe("Todas");
+  });
+
+  it("ida y vuelta con servicios", () => {
+    const f = parseSearchParams({ cat: "servicios", tipo: "Diseño web", pmax: "100000", q: "web" }, AMENITIES);
+    const back = parseSearchParams(Object.fromEntries(new URLSearchParams(toQueryString(f))), AMENITIES);
+    expect(back).toEqual(f);
+  });
+});
+
 describe("activeFilterCount", () => {
   it("cuenta cada grupo de filtros una vez", () => {
     expect(activeFilterCount(EMPTY_FILTERS)).toBe(0);

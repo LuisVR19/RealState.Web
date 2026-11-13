@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
-  amenityIcon, CATEGORIES, CATEGORY_ICON, CATEGORY_LABEL, dots, FUELS, itemNoun, KM_PRESETS, OP_LABEL, operationsOf, pricePresetsFor, shortCrc,
+  amenityIcon, MATCH_CATEGORIES, CATEGORY_ICON, CATEGORY_LABEL, dots, FUELS, itemNoun, KM_PRESETS, OP_LABEL, operationsOf, pricePresetsFor, shortCrc,
   TRANSMISSIONS, TYPE_ICON, TYPE_PLURAL, typesOf, YEAR_PRESETS,
 } from "@/lib/format";
 import { searchPath } from "@/lib/routes";
@@ -13,7 +13,8 @@ import type { Amenity, Canton, Category, Fuel, Operation, PropertyType, SearchFi
 import { Chip, ChipGroup, toggle } from "../Chip";
 import { useUI } from "../ui-provider";
 
-type Op = Operation | "Todas";
+// La búsqueda guiada y las preferencias son de inmuebles y vehículos: los servicios no tienen operación propia.
+type Op = Exclude<Operation, "Servicio"> | "Todas";
 const OP_ICON: Record<Op, string> = { Venta: "ph-key", Alquiler: "ph-calendar", Vacacional: "ph-sun", Preventa: "ph-crane", Todas: "ph-circles-four" };
 const toAmount = (s: string) => {
   const n = Number(s.replace(/\D/g, ""));
@@ -197,7 +198,7 @@ export function WizardDialog() {
           {step === 0 && (
             <>
               <ChipGroup title="Busco">
-                {CATEGORIES.map((c) => <Chip key={c} size="lg" label={CATEGORY_LABEL[c]} icon={CATEGORY_ICON[c]} on={category === c} onClick={() => pickCategory(c)} />)}
+                {MATCH_CATEGORIES.map((c) => <Chip key={c} size="lg" label={CATEGORY_LABEL[c]} icon={CATEGORY_ICON[c]} on={category === c} onClick={() => pickCategory(c)} />)}
               </ChipGroup>
               <ChipGroup title="Operación">
                 {([...operationsOf(category), "Todas"] as Op[]).map((k) => (

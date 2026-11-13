@@ -15,7 +15,7 @@ import { PropertyDetailSkeleton } from "@/components/Skeletons";
 import { TrackView } from "@/components/TrackView";
 import { VisitScheduler } from "@/components/VisitScheduler";
 import { agentResolver, getActiveAds, getAgentOrTeam, getPropertyByCode, getPublishedProperties, getSimilarProperties } from "@/lib/data";
-import { amenityIcon, crc, decimal, dots, isVehicle, monthlyPayment, OP_LABEL, pricePeriod, priceSuffix, vehicleName, waProperty } from "@/lib/format";
+import { amenityIcon, crc, decimal, dots, isService, isVehicle, monthlyPayment, OP_LABEL, priceLine, priceMain, pricePrefix, priceSuffix, vehicleName, waProperty } from "@/lib/format";
 import { agentPath, propertyPath } from "@/lib/routes";
 
 type Params = Pick<PageProps<"/catalogo/[code]">, "params">;
@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const p = await getPropertyByCode((await params).code);
   if (!p) return { title: "Anuncio no disponible · Thomas Mata S.A." };
   const title = `${p.title} | Thomas Mata S.A.`;
-  const description = `${p.zone}, ${p.canton} · ${crc(p.price)}${pricePeriod(p)}`;
+  const description = `${p.zone}, ${p.canton} · ${priceLine(p)}`;
   return {
     title,
     description,
@@ -57,10 +57,14 @@ async function PropertyDetail({ params }: Params) {
   if (!p) notFound();
   const [a, similar, agentOf, services] = await Promise.all([getAgentOrTeam(p.agentId), getSimilarProperties(p), agentResolver(), getActiveAds("detail_services", p.canton)]);
   const vehicle = isVehicle(p);
+  const service = isService(p);
   // La calculadora es de hipoteca: solo para inmuebles en venta o preventa.
   const showCalc = !vehicle && (p.operation === "Venta" || p.operation === "Preventa");
 
-  const facts = (vehicle ? [
+  const facts = (service ? [
+    { icon: "ph-briefcase", v: p.type, l: "Servicio" },
+    p.serviceRate ? { icon: "ph-receipt", v: p.serviceRate, l: "Forma de cobro" } : null,
+  ] : vehicle ? [
     p.yearBuilt ? { icon: "ph-calendar-blank", v: p.yearBuilt, l: "Año" } : null,
     p.mileageKm != null ? { icon: "ph-gauge", v: dots(p.mileageKm), l: "Kilómetros" } : null,
     p.transmission ? { icon: "ph-steering-wheel", v: p.transmission, l: "Transmisión" } : null,
@@ -80,7 +84,7 @@ async function PropertyDetail({ params }: Params) {
     [
       ["Código", p.code],
       ["Tipo", p.type],
-      ["Operación", OP_LABEL[p.operation]],
+      service ? ["Forma de cobro", p.serviceRate ?? "A convenir"] : ["Operación", OP_LABEL[p.operation]],
       vehicle && p.brand ? ["Marca", p.brand] : null,
       vehicle && p.model ? ["Modelo", p.model] : null,
       vehicle && p.color ? ["Color", p.color] : null,
@@ -92,7 +96,12 @@ async function PropertyDetail({ params }: Params) {
       ["Publicado", p.daysPublished === 1 ? "hace 1 día" : `hace ${p.daysPublished} días`],
     ] as ([string, string] | null)[]
   ).filter((x) => x !== null);
-  const steps = vehicle ? [
+  const steps = service ? [
+    ["1. Cuéntanos qué necesitas", "Escríbenos por WhatsApp o agenda una llamada con tu asesor."],
+    ["2. Recibe una cotización", "Alcance, tiempos y precio claros antes de empezar."],
+    ["3. Coordina el trabajo", "Fecha, lugar o modalidad (presencial o virtual)."],
+    ["4. Seguimiento", "Tu asesor acompaña el proceso hasta que quedes satisfecho."],
+  ] : vehicle ? [
     ["1. Agenda una cita", "Míralo en persona o por videollamada y coordina una prueba de manejo."],
     ["2. Resuelve dudas", "Historial, mantenimientos, RTV, marchamo y estado del registro."],
     ["3. Haz tu oferta", "Tu asesor negocia precio y condiciones con el dueño."],
@@ -124,8 +133,8 @@ async function PropertyDetail({ params }: Params) {
               <h1 className="detail-title">{p.title}</h1>
               <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14, color: "var(--color-neutral-400)" }}><i className="ph ph-map-pin" style={{ fontSize: 16 }} />{[p.address, p.zone, p.canton, p.country !== "Costa Rica" ? p.country : null].filter(Boolean).join(", ")}</div>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
-                {p.operation === "Preventa" && <span style={{ fontSize: 14, color: "var(--color-neutral-400)" }}>Desde</span>}
-                <span className="detail-price">{crc(p.price)}</span>
+                {pricePrefix(p) && <span style={{ fontSize: 14, color: "var(--color-neutral-400)" }}>{pricePrefix(p)}</span>}
+                <span className="detail-price">{priceMain(p)}</span>
                 <span style={{ fontSize: 14, color: "var(--color-neutral-400)" }}>{priceSuffix(p)}</span>
               </div>
               {showCalc && <span style={{ fontSize: 13, color: "var(--color-accent-300)" }}>Cuota estimada desde {crc(monthlyPayment(p.price, 20, 25, 9).monthly)}/mes</span>}
@@ -155,7 +164,7 @@ async function PropertyDetail({ params }: Params) {
 
             {p.amenities.length > 0 && (
               <section className="stack-12">
-                <h2 className="h2-20">{vehicle ? "Equipamiento" : "Amenidades"}</h2>
+                <h2 className="h2-20">{service ? "Detalles del servicio" : vehicle ? "Equipamiento" : "Amenidades"}</h2>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {p.amenities.map((x) => <span key={x} className="amenity"><i className={`ph ${amenityIcon(x)}`} />{x}</span>)}
                 </div>
@@ -163,9 +172,9 @@ async function PropertyDetail({ params }: Params) {
             )}
 
             <section className="stack-12">
-              <h2 className="h2-20">Ubicación</h2>
+              <h2 className="h2-20">{service ? "Zona de atención" : "Ubicación"}</h2>
               <DetailMap lat={p.lat} lng={p.lng} />
-              <span style={{ fontSize: 13, color: "var(--color-neutral-500)" }}>Zona aproximada. {vehicle ? "El lugar exacto para verlo se comparte al confirmar la cita." : "La dirección exacta se comparte al confirmar la visita."}</span>
+              <span style={{ fontSize: 13, color: "var(--color-neutral-500)" }}>Zona aproximada. {service ? "Consulta con tu asesor si el servicio llega a tu zona o se ofrece de forma virtual." : vehicle ? "El lugar exacto para verlo se comparte al confirmar la cita." : "La dirección exacta se comparte al confirmar la visita."}</span>
             </section>
 
             {showCalc && <MortgageCalculator property={p} agent={a} />}
@@ -202,13 +211,13 @@ async function PropertyDetail({ params }: Params) {
         </div>
 
         <section className="stack-16">
-          <h2 className="h2-20">{vehicle ? "Vehículos similares" : "Propiedades similares"}</h2>
+          <h2 className="h2-20">{service ? "Servicios similares" : vehicle ? "Vehículos similares" : "Propiedades similares"}</h2>
           <div className="grid-cards-260">
             {similar.map((x) => <PropertyCard key={x.id} property={x} agent={agentOf(x.agentId)} />)}
           </div>
         </section>
       </div>
-      <BottomBar property={p} agent={a} priceShort={(p.operation === "Preventa" ? "Desde " : "") + crc(p.price) + pricePeriod(p)} />
+      <BottomBar property={p} agent={a} priceShort={priceLine(p)} />
     </div>
   );
 }

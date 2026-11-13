@@ -4,7 +4,7 @@ import Link from "next/link";
 import { img } from "@/lib/img";
 import { useRouter } from "next/navigation";
 import { useState, type MouseEvent } from "react";
-import { crc, OP_LABEL, priceSuffix, specs, waProperty } from "@/lib/format";
+import { OP_LABEL, priceMain, pricePrefix, priceSuffix, specs, waProperty } from "@/lib/format";
 import { propertyPath } from "@/lib/routes";
 import type { Agent, PropertySummary } from "@/lib/types";
 import { useUI } from "./ui-provider";
@@ -47,8 +47,8 @@ export function PropertyCard({ property: p, agent: a, active, onHover }: Props) 
       </div>
       <div className="pcard-body">
         <div className="pcard-price">
-          {p.operation === "Preventa" && <span style={{ fontSize: 12, color: "var(--color-neutral-400)" }}>Desde</span>}
-          <span className="pcard-price-main">{crc(p.price)}</span>
+          {pricePrefix(p) && <span style={{ fontSize: 12, color: "var(--color-neutral-400)" }}>{pricePrefix(p)}</span>}
+          <span className="pcard-price-main">{priceMain(p)}</span>
           <span style={{ fontSize: 12, color: "var(--color-neutral-400)" }}>{priceSuffix(p)}</span>
         </div>
         <Link href={href} className="pcard-title" onClick={(e) => e.stopPropagation()}>{p.title}</Link>

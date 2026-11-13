@@ -6,11 +6,13 @@ type Enums = Database["public"]["Enums"];
 
 export type Operation = Enums["property_operation"];
 export type PropertyType = Enums["property_type"];
-/** Inmueble o Vehículo (la base la deduce del tipo). */
+/** Inmueble, Vehículo o Servicio (la base la deduce del tipo). */
 export type Category = Enums["listing_category"];
 export type Transmission = Enums["vehicle_transmission"];
 export type Fuel = Enums["vehicle_fuel"];
 export type Drivetrain = Enums["vehicle_drivetrain"];
+/** Servicio: forma de cobro. */
+export type ServiceRate = Enums["service_rate"];
 export type PropertyStatus = Enums["property_status"];
 /** Ciudad / cantón / municipio (texto libre: cualquier país). */
 export type Canton = string;
@@ -20,7 +22,7 @@ export type Amenity = string;
 export interface AmenityOption {
   id: string;
   name: string;
-  /** Amenidad de inmueble o equipamiento de vehículo. */
+  /** Amenidad de inmueble, equipamiento de vehículo o detalle de servicio. */
   category: Category;
 }
 
@@ -63,7 +65,7 @@ export interface SiteContact {
   team: Agent;
 }
 
-/** Datos de un anuncio (inmueble o vehículo) suficientes para tarjetas, mapa y diálogos. */
+/** Datos de un anuncio (inmueble, vehículo o servicio) suficientes para tarjetas, mapa y diálogos. */
 export interface PropertySummary {
   id: string;
   code: string; // ej. "ISF-0001"
@@ -91,6 +93,8 @@ export interface PropertySummary {
   mileageKm?: number;
   transmission?: Transmission;
   fuel?: Fuel;
+  // Servicio
+  serviceRate?: ServiceRate;
   agentId: string;
   images: string[]; // URLs completas; la primera es la portada
   daysPublished: number;

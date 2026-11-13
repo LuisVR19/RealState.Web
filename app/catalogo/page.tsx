@@ -13,7 +13,7 @@ import type { SearchFilters } from "@/lib/types";
 
 export const metadata: Metadata = {
   title: "Catálogo · Thomas Mata S.A.",
-  description: "Casas, apartamentos, terrenos, carros, motos, pickups y camiones en venta y alquiler.",
+  description: "Casas, apartamentos, terrenos, carros, motos, pickups y camiones en venta y alquiler, y servicios de empresas y profesionales.",
 };
 
 export default function SearchPage({ searchParams }: PageProps<"/catalogo">) {
@@ -28,7 +28,7 @@ async function SearchResults({ searchParams }: Pick<PageProps<"/catalogo">, "sea
   // Primero los query params: lo que sigue ocurre por petición, no durante el prerender.
   const sp = await searchParams;
   const [amenities, agents, locations, brands] = await Promise.all([getAmenities(), getAgents(), getLocations(), getVehicleBrands()]);
-  // Las amenidades válidas dependen de la categoría elegida (inmueble o vehículo).
+  // Las amenidades válidas dependen de la categoría elegida (inmueble, vehículo o servicio).
   const f0 = parseSearchParams(sp, amenities.map((a) => a.name), locations, brands);
   const f = f0.category ? { ...f0, amenities: f0.amenities.filter((n) => amenities.some((a) => a.name === n && a.category === f0.category)) } : f0;
   // Las guardadas dependen del usuario: se leen con su sesión (RLS) y no se cachean.

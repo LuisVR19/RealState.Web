@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { crc, formatPhone, isValidPhone, monthlyPayment, normalizePhone, shortCrc } from "@/lib/format";
+import { categoryOf, crc, formatPhone, isValidPhone, matchTypesOf, monthlyPayment, normalizePhone, operationsOf, priceLine, shortCrc } from "@/lib/format";
+import type { PropertySummary } from "@/lib/types";
 
 describe("teléfonos de Costa Rica", () => {
   it.each([
@@ -40,5 +41,36 @@ describe("montos", () => {
     expect(loan).toBe(80_000_000);
     // Referencia: 733,76 por cada 100 000 a 8 % y 30 años → 80 M × 0,0073376 ≈ 587 012.
     expect(Math.round(monthly)).toBe(587_012);
+  });
+});
+
+describe("servicios: categoría y precio", () => {
+  const base: PropertySummary = { id: "1", code: "ISF-0001", title: "x", category: "Servicio", operation: "Servicio", type: "Diseño web", featured: false, canton: "Cartago", zone: "Centro", lat: 0, lng: 0, price: 150000, bedrooms: 0, bathrooms: 0, areaM2: 0, parkingSpaces: 0, agentId: "a", images: [], daysPublished: 0 };
+
+  it("categoryOf reconoce los tipos de servicio", () => {
+    expect(categoryOf("Diseño web")).toBe("Servicio");
+    expect(categoryOf("Otro servicio")).toBe("Servicio");
+    expect(categoryOf("Carro")).toBe("Vehículo");
+    expect(categoryOf("Casa")).toBe("Inmueble");
+  });
+
+  it("los servicios solo tienen la operación Servicio y no entran en las operaciones generales", () => {
+    expect(operationsOf("Servicio")).toEqual(["Servicio"]);
+    expect(operationsOf(null)).not.toContain("Servicio");
+    expect(matchTypesOf(null)).not.toContain("Diseño web");
+  });
+
+  it.each([
+    ["Por proyecto", "Desde ₡150.000"],
+    ["Por hora", "₡150.000/hora"],
+    ["Precio fijo", "₡150.000"],
+    ["A convenir", "A convenir"],
+  ] as const)("priceLine con cobro %s = %s", (serviceRate, out) => {
+    expect(priceLine({ ...base, serviceRate })).toBe(out);
+  });
+
+  it("un inmueble en venta no muestra periodo y uno en alquiler sí", () => {
+    expect(priceLine({ ...base, category: "Inmueble", type: "Casa", operation: "Venta", price: 1000 })).toBe("₡1.000");
+    expect(priceLine({ ...base, category: "Inmueble", type: "Casa", operation: "Alquiler", price: 1000 })).toBe("₡1.000/mes");
   });
 });

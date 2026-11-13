@@ -27,7 +27,7 @@ const categoryFromSlug = (slug: string | undefined): Category | null => CATEGORI
 
 /**
  * Lee y sanea los query params. Los valores inválidos se ignoran.
- * Con una categoría elegida se descartan los filtros que no le aplican (p. ej. habitaciones en vehículos).
+ * Con una categoría elegida se descartan los filtros que no le aplican (p. ej. habitaciones en vehículos o servicios).
  */
 export function parseSearchParams(
   sp: Raw,
@@ -36,8 +36,9 @@ export function parseSearchParams(
   brandNames: readonly string[] = [],
 ): SearchFilters {
   const category = categoryFromSlug(one(sp.cat));
-  const vehicle = category === "Vehículo";
-  const realEstate = category === "Inmueble";
+  // Filtros de inmueble (habitaciones, área…) y de vehículo (marca, año…): no aplican a las otras categorías.
+  const noHome = category === "Vehículo" || category === "Servicio";
+  const noVehicle = category === "Inmueble" || category === "Servicio";
   const op = one(sp.op);
   const q = one(sp.q)?.trim().slice(0, MAX_Q);
   const sort = one(sp.orden);
@@ -53,17 +54,17 @@ export function parseSearchParams(
     // Solo ubicaciones conocidas (las que tienen anuncios o zona destacada): conjunto finito para la caché.
     cantons: pick<Canton>(locationNames, list(sp.canton)),
     priceMin, priceMax,
-    bedrooms: vehicle ? 0 : num(sp.hab, 10) ?? 0,
-    bathrooms: vehicle ? 0 : num(sp.banos, 10) ?? 0,
-    parking: vehicle ? 0 : num(sp.parqueos, 10) ?? 0,
-    areaMin: vehicle ? undefined : areaMin,
-    areaMax: vehicle ? undefined : areaMax,
+    bedrooms: noHome ? 0 : num(sp.hab, 10) ?? 0,
+    bathrooms: noHome ? 0 : num(sp.banos, 10) ?? 0,
+    parking: noHome ? 0 : num(sp.parqueos, 10) ?? 0,
+    areaMin: noHome ? undefined : areaMin,
+    areaMax: noHome ? undefined : areaMax,
     amenities: pick(amenityNames, list(sp.amen)),
-    brands: realEstate ? [] : pick(brandNames, list(sp.marca)),
-    yearMin: realEstate || !yearMin || yearMin < 1950 ? undefined : yearMin,
-    kmMax: realEstate ? undefined : num(sp.km, 5_000_000),
-    transmission: realEstate ? undefined : oneOf<Transmission>(TRANSMISSIONS, one(sp.trans)),
-    fuel: realEstate ? undefined : oneOf<Fuel>(FUELS, one(sp.comb)),
+    brands: noVehicle ? [] : pick(brandNames, list(sp.marca)),
+    yearMin: noVehicle || !yearMin || yearMin < 1950 ? undefined : yearMin,
+    kmMax: noVehicle ? undefined : num(sp.km, 5_000_000),
+    transmission: noVehicle ? undefined : oneOf<Transmission>(TRANSMISSIONS, one(sp.trans)),
+    fuel: noVehicle ? undefined : oneOf<Fuel>(FUELS, one(sp.comb)),
     q: q || undefined,
     sort: SORTS.includes(sort as SortOrder) ? (sort as SortOrder) : "recientes",
     saved: one(sp.guardadas) === "1",

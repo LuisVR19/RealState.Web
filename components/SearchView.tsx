@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Fragment, useEffect, useRef, useState, useTransition, type MouseEvent } from "react";
 import type { Map as LeafletMap } from "leaflet";
 import {
-  amenityIcon, CATEGORIES, CATEGORY_ICON, CATEGORY_LABEL, crc, dots, FUELS, itemNoun, KM_PRESETS, matchingPreset, OP_LABEL, operationsOf,
+  amenityIcon, CATEGORIES, CATEGORY_ICON, CATEGORY_LABEL, dots, FUELS, itemNoun, KM_PRESETS, matchingPreset, OP_LABEL, operationsOf, priceMain, pricePrefix,
   pricePresetsFor, priceSuffix, TRANSMISSIONS, TYPE_ICON, TYPE_PLURAL, typesOf, waProperty, YEAR_PRESETS,
 } from "@/lib/format";
 import { CATALOG_PATH, propertyPath, searchPath } from "@/lib/routes";
@@ -99,20 +99,23 @@ export function SearchView({ properties, total, agents, filters: f, activeChips,
   const sponsored = n > 0 ? ad : null;
   const filterCount = activeFilterCount(f);
   const vehicle = f.category === "Vehículo";
+  const service = f.category === "Servicio";
   const noun = (plural = true) => itemNoun(f.category, plural);
 
   /** Cambiar de categoría: se conservan texto, ubicación y orden; el resto de filtros depende de la categoría. */
   const setCategory = (c: Category | null) => {
     if (c === f.category) return;
-    const sort = (c === "Vehículo" && f.sort === "area_desc") || (c !== "Vehículo" && (f.sort === "anio_desc" || f.sort === "km_asc")) ? "recientes" : f.sort;
+    const sort = (c !== null && c !== "Inmueble" && f.sort === "area_desc") || (c !== "Vehículo" && (f.sort === "anio_desc" || f.sort === "km_asc")) ? "recientes" : f.sort;
     startTransition(() => router.replace(searchPath({ ...EMPTY_FILTERS, category: c, q: f.q, cantons: f.cantons, sort, saved: f.saved }), { scroll: false }));
   };
-  const categoryTabs = (
-    <div className="chip-row" role="tablist" aria-label="Categoría" style={{ flexWrap: "nowrap" }}>
+  // En la barra superior va en una sola línea (con scroll); en el panel de filtros se reparte en varias.
+  const categoryChips = (wrap: boolean) => (
+    <div className="chip-row" role="tablist" aria-label="Categoría" style={{ flexWrap: wrap ? "wrap" : "nowrap" }}>
       <Chip label="Todo" icon="ph-squares-four" on={f.category === null} onClick={() => setCategory(null)} />
       {CATEGORIES.map((c) => <Chip key={c} label={CATEGORY_LABEL[c]} icon={CATEGORY_ICON[c]} on={f.category === c} onClick={() => setCategory(c)} />)}
     </div>
   );
+  const categoryTabs = categoryChips(false);
 
   const opChips = (["Todas", ...operationsOf(f.category)] as Op[]).map((k) => (
     <Chip key={k} label={k === "Todas" ? "Todas" : OP_LABEL[k]} icon={f.operation === k ? "ph-check" : "ph-circle"} on={f.operation === k} onClick={() => apply({ operation: k })} />
@@ -144,14 +147,18 @@ export function SearchView({ properties, total, agents, filters: f, activeChips,
   );
   const priceInputs = rangeInputs("priceMin", "priceMax", ["Mínimo (₡)", "Máximo (₡)"], ["0", "Sin límite"]);
 
-  const quick: { key: Exclude<Pop, null>; label: string; on: boolean; title: string; chips: React.ReactNode; clear: () => void; isPrice?: boolean }[] = [
-    { key: "op", label: f.operation === "Todas" ? "Operación" : OP_LABEL[f.operation], on: f.operation !== "Todas", title: "Operación", chips: opChips, clear: () => apply({ operation: "Todas" }) },
-    { key: "type", label: f.types.length ? (f.types.length === 1 ? TYPE_PLURAL[f.types[0]] : "Tipo · " + f.types.length) : "Tipo", on: f.types.length > 0, title: vehicle ? "Tipo de vehículo" : "Tipo", chips: typeChips, clear: () => apply({ types: [] }) },
+  type Quick = { key: Exclude<Pop, null>; label: string; on: boolean; title: string; chips: React.ReactNode; clear: () => void; isPrice?: boolean };
+  // Los servicios no tienen operación ni filtros de habitaciones / año: solo tipo y precio.
+  const quick: Quick[] = ([
+    service ? null : { key: "op", label: f.operation === "Todas" ? "Operación" : OP_LABEL[f.operation], on: f.operation !== "Todas", title: "Operación", chips: opChips, clear: () => apply({ operation: "Todas" }) },
+    { key: "type", label: f.types.length ? (f.types.length === 1 ? TYPE_PLURAL[f.types[0]] : "Tipo · " + f.types.length) : "Tipo", on: f.types.length > 0, title: vehicle ? "Tipo de vehículo" : service ? "Tipo de servicio" : "Tipo", chips: typeChips, clear: () => apply({ types: [] }) },
     { key: "price", label: preset?.label ?? (f.priceMin || f.priceMax ? "Precio · rango" : "Precio"), on: !!(f.priceMin || f.priceMax), title: "Rango de precio (colones)", chips: priceChips, clear: () => apply({ priceMin: undefined, priceMax: undefined }), isPrice: true },
-    vehicle
+    service
+      ? null
+      : vehicle
       ? { key: "beds", label: f.yearMin ? `Desde ${f.yearMin}` : "Año", on: !!f.yearMin, title: "Año del vehículo", chips: yearChips, clear: () => apply({ yearMin: undefined }) }
       : { key: "beds", label: f.bedrooms ? f.bedrooms + "+ hab." : "Habitaciones", on: f.bedrooms > 0, title: "Habitaciones", chips: numChips(f.bedrooms, "bedrooms", [0, 1, 2, 3, 4], "ph-bed"), clear: () => apply({ bedrooms: 0 }) },
-  ];
+  ] as (Quick | null)[]).filter((x): x is Quick => x !== null);
   // En pantallas de menos de 1100px los filtros rápidos abren el panel lateral.
   const openQuick = (k: Exclude<Pop, null>) => {
     if (window.matchMedia("(max-width: 1099px)").matches) setDrawer(true);
@@ -159,16 +166,18 @@ export function SearchView({ properties, total, agents, filters: f, activeChips,
   };
 
   const amenityChips = (
-    <AmenityChips key="amen" category={vehicle ? "Vehículo" : "Inmueble"} selected={f.amenities} onToggle={(a) => apply({ amenities: toggle(f.amenities, a) })} />
+    <AmenityChips key="amen" category={vehicle ? "Vehículo" : service ? "Servicio" : "Inmueble"} selected={f.amenities} onToggle={(a) => apply({ amenities: toggle(f.amenities, a) })} />
   );
-  // Sin categoría se muestran los filtros de inmueble (la mayoría del inventario); con "Vehículos", los suyos.
+  // Sin categoría se muestran los filtros de inmueble (la mayoría del inventario); con "Vehículos" o "Servicios", los suyos.
   const drawerGroups: [string, React.ReactNode, boolean?][] = [
-    ["Categoría", categoryTabs],
-    ["Operación", opChips],
-    [vehicle ? "Tipo de vehículo" : "Tipo", typeChips],
+    ["Categoría", categoryChips(true)],
+    ...(service ? [] : [["Operación", opChips] as [string, React.ReactNode]]),
+    [vehicle ? "Tipo de vehículo" : service ? "Tipo de servicio" : "Tipo", typeChips],
     ["Ubicación", locations.map((c) => <Chip key={c} label={c} icon="ph-map-pin" on={f.cantons.includes(c)} onClick={() => apply({ cantons: toggle(f.cantons, c) })} />)],
     ["Precio (colones)", priceChips, true],
-    ...((vehicle
+    ...((service
+      ? [["Detalles", amenityChips]]
+      : vehicle
       ? [
           ...(brands.length ? [["Marca", brandChips]] : []),
           ["Año", yearChips],
@@ -193,7 +202,7 @@ export function SearchView({ properties, total, agents, filters: f, activeChips,
       <div className="filter-bar">
         <form className="input-icon filter-search" role="search" onSubmit={(e) => { e.preventDefault(); apply({ q: q.trim().slice(0, 80) || undefined }); }}>
           <i className="ph ph-magnifying-glass" style={{ fontSize: 15 }} />
-          <input className="input" value={q} onChange={(e) => setQ(e.target.value)} maxLength={80} aria-label="Buscar por zona, marca, modelo o código" placeholder={vehicle ? "Marca, modelo o código" : "Zona, barrio, marca o código"} style={{ paddingLeft: 32, height: 38 }} />
+          <input className="input" value={q} onChange={(e) => setQ(e.target.value)} maxLength={80} aria-label="Buscar por zona, marca, modelo o código" placeholder={vehicle ? "Marca, modelo o código" : service ? "Servicio, zona o código" : "Zona, barrio, marca o código"} style={{ paddingLeft: 32, height: 38 }} />
         </form>
         <div className="quick-filters">
           <div className="qf-categories" style={{ flex: "none" }}>{categoryTabs}</div>
@@ -227,7 +236,7 @@ export function SearchView({ properties, total, agents, filters: f, activeChips,
             <div>
               <h1 style={{ fontSize: 22, margin: "0 0 2px" }}>{total} {noun(total !== 1)}</h1>
               <div style={{ fontSize: 13, color: "var(--color-neutral-400)" }}>
-                {f.saved ? "Tus anuncios guardados" : f.operation === "Todas" ? "Venta y alquiler" : OP_LABEL[f.operation]}{f.cantons.length ? ` en ${f.cantons.join(", ")}` : ""}
+                {f.saved ? "Tus anuncios guardados" : service ? "Empresas y profesionales" : f.operation === "Todas" ? (f.category ? "Venta y alquiler" : "Venta, alquiler y servicios") : OP_LABEL[f.operation]}{f.cantons.length ? ` en ${f.cantons.join(", ")}` : ""}
               </div>
             </div>
             <select className="input" aria-label="Ordenar" value={f.sort} onChange={(e) => apply({ sort: e.target.value as SortOrder })} style={{ width: "auto", height: 36, fontSize: 13 }}>
@@ -240,7 +249,7 @@ export function SearchView({ properties, total, agents, filters: f, activeChips,
                   <option value="anio_desc">Más nuevos</option>
                   <option value="km_asc">Menos kilometraje</option>
                 </>
-              ) : (
+              ) : service ? null : (
                 <option value="area_desc">Mayor área</option>
               )}
             </select>
@@ -259,7 +268,7 @@ export function SearchView({ properties, total, agents, filters: f, activeChips,
             <div className="help-banner">
               <div style={{ flex: "1 1 280px", display: "flex", flexDirection: "column", gap: 4 }}>
                 <span style={{ fontSize: 17, fontWeight: 500 }}>¿No encuentras lo que buscas?</span>
-                <span style={{ fontSize: 13, color: "var(--color-neutral-300)", textWrap: "pretty" }}>Cuéntale a un asesor qué necesitas. Te envía una selección por WhatsApp en menos de 24 horas, incluyendo {vehicle ? "vehículos" : "opciones"} que aún no están publicados.</span>
+                <span style={{ fontSize: 13, color: "var(--color-neutral-300)", textWrap: "pretty" }}>Cuéntale a un asesor qué necesitas. Te envía una selección por WhatsApp en menos de 24 horas, incluyendo {vehicle ? "vehículos" : service ? "servicios" : "opciones"} que aún no están publicados.</span>
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <a className="btn btn-primary" href={teamWa} target="_blank" rel="noopener" style={{ height: 40 }}><i className="ph ph-whatsapp-logo" style={{ fontSize: 17 }} />WhatsApp</a>
@@ -299,7 +308,7 @@ export function SearchView({ properties, total, agents, filters: f, activeChips,
               <div className="map-preview-img"><img src={img(sel.images[0], 400)} alt={sel.title} /></div>
               <div className="map-preview-body">
                 <span style={{ fontSize: 11, color: "var(--color-accent-300)" }}>{OP_LABEL[sel.operation]} · {sel.type}</span>
-                <span style={{ fontSize: 18, fontWeight: 500, letterSpacing: "-0.02em" }}>{crc(sel.price)}<span style={{ fontSize: 12, fontWeight: 400, color: "var(--color-neutral-400)" }}> {priceSuffix(sel)}</span></span>
+                <span style={{ fontSize: 18, fontWeight: 500, letterSpacing: "-0.02em" }}>{pricePrefix(sel) && <span style={{ fontSize: 12, fontWeight: 400, color: "var(--color-neutral-400)" }}>{pricePrefix(sel)} </span>}{priceMain(sel)}<span style={{ fontSize: 12, fontWeight: 400, color: "var(--color-neutral-400)" }}> {priceSuffix(sel)}</span></span>
                 <span style={{ fontSize: 13, color: "var(--color-neutral-200)", lineHeight: 1.3 }}>{sel.title}</span>
                 <span className="arrow-link" style={{ marginTop: "auto" }}>Ver detalle<i className="ph ph-arrow-right" /></span>
               </div>
@@ -335,7 +344,7 @@ export function SearchView({ properties, total, agents, filters: f, activeChips,
                   </div>
                 </Fragment>
               ))}
-              {!vehicle && (
+              {!vehicle && !service && (
                 <div className="chip-group" style={{ gap: 10 }}>
                   <span className="chip-group-title">Espacio (m²)</span>
                   {rangeInputs("areaMin", "areaMax", ["Mínimo", "Máximo"], ["Ej. 100", "Sin límite"])}

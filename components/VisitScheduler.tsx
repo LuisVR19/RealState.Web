@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { requestVisit } from "@/app/actions";
 import { Turnstile, turnstileEnabled, type TurnstileHandle } from "./ui/Turnstile";
 import { COMPANY } from "@/lib/legal";
-import { isValidPhone, nextVisitDays, normalizePhone, VISIT_TIMES, waLink } from "@/lib/format";
+import { isService, isValidPhone, nextVisitDays, normalizePhone, VISIT_TIMES, waLink } from "@/lib/format";
 import type { Agent, PropertySummary, VisitMode } from "@/lib/types";
 import { useUI } from "./ui-provider";
 
@@ -28,6 +28,8 @@ export function VisitScheduler({ agent, property, radioName }: { agent: Agent; p
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // Un servicio se agenda como "cita" (no se visita un inmueble ni se ve un vehículo).
+  const meeting = property && isService(property) ? "cita" : "visita";
   const captcha = useRef<TurnstileHandle>(null);
   const [captchaToken, setCaptchaToken] = useState("");
 
@@ -60,7 +62,7 @@ export function VisitScheduler({ agent, property, radioName }: { agent: Agent; p
 
   if (done) {
     const summary = `${d.dow} ${d.num} ${d.mon} · ${time} · ${mode}`;
-    const wa = waLink(agent, `Hola ${agent.firstName}, soy ${name}. Acabo de solicitar ${property ? `una visita a "${property.title}" (${property.code})` : "una reunión"} para el ${summary}.`);
+    const wa = waLink(agent, `Hola ${agent.firstName}, soy ${name}. Acabo de solicitar ${property ? `una ${meeting} por "${property.title}" (${property.code})` : "una reunión"} para el ${summary}.`);
     return (
       <div className="sched-done">
         <i className="ph ph-check-circle" style={{ fontSize: 34, color: "var(--color-accent)" }} />
@@ -78,7 +80,7 @@ export function VisitScheduler({ agent, property, radioName }: { agent: Agent; p
   return (
     <div className="sched">
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        <div style={{ fontSize: 16, fontWeight: 500 }}>{property ? "Agenda una visita" : "Agenda una reunión"}</div>
+        <div style={{ fontSize: 16, fontWeight: 500 }}>{property ? `Agenda una ${meeting}` : "Agenda una reunión"}</div>
         <div className="muted-12">Sin costo. {agent.firstName} confirma por WhatsApp.</div>
       </div>
       <div className="seg" style={{ display: "flex", width: "100%" }}>
@@ -115,11 +117,11 @@ export function VisitScheduler({ agent, property, radioName }: { agent: Agent; p
       </div>
       <label className="consent">
         <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
-        <span>Autorizo a {COMPANY.tradeName} a usar mi nombre y WhatsApp para coordinar esta visita, según la <a href="/politica-de-privacidad" target="_blank" rel="noopener">política de privacidad</a>.</span>
+        <span>Autorizo a {COMPANY.tradeName} a usar mi nombre y WhatsApp para coordinar esta {property ? meeting : "reunión"}, según la <a href="/politica-de-privacidad" target="_blank" rel="noopener">política de privacidad</a>.</span>
       </label>
       {filled && consent && <Turnstile ref={captcha} action="visit" onChange={setCaptchaToken} />}
       <button className="btn btn-primary" disabled={!ready || pending} onClick={submit} style={{ width: "100%", height: 42, fontSize: 15 }}>
-        <i className="ph ph-calendar-check" style={{ fontSize: 17 }} />{pending ? "Enviando…" : "Solicitar visita"}
+        <i className="ph ph-calendar-check" style={{ fontSize: 17 }} />{pending ? "Enviando…" : property && meeting === "cita" ? "Solicitar cita" : "Solicitar visita"}
       </button>
       <div role={error ? "alert" : undefined} style={{ fontSize: 11, color: error ? "#8a2f24" : "var(--color-neutral-500)", textAlign: "center" }}>{hint}</div>
     </div>

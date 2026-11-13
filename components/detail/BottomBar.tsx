@@ -1,7 +1,7 @@
 "use client";
 
 import type { Agent, PropertySummary } from "@/lib/types";
-import { waProperty } from "@/lib/format";
+import { isService, waProperty } from "@/lib/format";
 import { useUI } from "../ui-provider";
 
 /** Barra fija de contacto en celular y tablet (menos de 1024px). */
@@ -14,7 +14,7 @@ export function BottomBar({ property, agent, priceShort }: { property: PropertyS
         <span style={{ fontSize: 11, color: "var(--color-neutral-400)" }}>{agent.firstName} · responde en {agent.responseTime}</span>
       </div>
       <a className="btn btn-secondary btn-icon" href={waProperty(agent, property)} target="_blank" rel="noopener" aria-label="WhatsApp" style={{ width: 44, height: 44 }}><i className="ph ph-whatsapp-logo" style={{ fontSize: 20 }} /></a>
-      <button className="btn btn-primary" onClick={() => open({ type: "visit", agent, property })} style={{ height: 44, padding: "0 16px" }}><i className="ph ph-calendar-check" style={{ fontSize: 17 }} />Agendar visita</button>
+      <button className="btn btn-primary" onClick={() => open({ type: "visit", agent, property })} style={{ height: 44, padding: "0 16px" }}><i className="ph ph-calendar-check" style={{ fontSize: 17 }} />{isService(property) ? "Agendar cita" : "Agendar visita"}</button>
     </div>
   );
 }

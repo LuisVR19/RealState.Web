@@ -2,14 +2,15 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CATEGORIES, CATEGORY_LABEL, dots, KM_PRESETS, OP_LABEL, operationsOf, TYPE_PLURAL, typesOf, YEAR_PRESETS } from "@/lib/format";
+import { CATEGORY_LABEL, dots, KM_PRESETS, MATCH_CATEGORIES, matchTypesOf, OP_LABEL, operationsOf, TYPE_PLURAL, typesOf, YEAR_PRESETS } from "@/lib/format";
 import { createClient } from "@/lib/supabase/client";
 import type { Amenity, Canton, Category, Operation, PropertyType } from "@/lib/types";
 import { Chip, ChipGroup, toggle } from "../Chip";
 import { PreferencesSkeleton } from "../Skeletons";
 import { useUI } from "../ui-provider";
 
-type Op = Operation | "Todas";
+// Las preferencias (y el matching) son de inmuebles y vehículos: los servicios no tienen operación propia.
+type Op = Exclude<Operation, "Servicio"> | "Todas";
 
 const toAmount = (s: string) => {
   const n = Number(s.replace(/\D/g, ""));
@@ -158,14 +159,14 @@ export function PreferencesDialog({ welcome }: { welcome?: boolean }) {
         ) : (
           <>
             <ChipGroup title="Busco" strong>
-              {CATEGORIES.map((c) => <Chip key={c} size="md" label={CATEGORY_LABEL[c]} on={category === c} onClick={() => pickCategory(c)} />)}
+              {MATCH_CATEGORIES.map((c) => <Chip key={c} size="md" label={CATEGORY_LABEL[c]} on={category === c} onClick={() => pickCategory(c)} />)}
               <Chip size="md" label="Ambos" on={category === null} onClick={() => pickCategory(null)} />
             </ChipGroup>
             <ChipGroup title="Operación" strong>
               {([...operationsOf(category), "Todas"] as Op[]).map((k) => <Chip key={k} size="md" label={k === "Todas" ? "Cualquiera" : OP_LABEL[k]} on={op === k} onClick={() => setOp(k)} />)}
             </ChipGroup>
             <ChipGroup title="Tipo" strong>
-              {typesOf(category).map((t) => <Chip key={t} size="md" label={TYPE_PLURAL[t]} on={types.includes(t)} onClick={() => setTypes(toggle(types, t))} />)}
+              {matchTypesOf(category).map((t) => <Chip key={t} size="md" label={TYPE_PLURAL[t]} on={types.includes(t)} onClick={() => setTypes(toggle(types, t))} />)}
             </ChipGroup>
             <ChipGroup title="Ubicaciones de interés" strong>
               {[...new Set([...locations, ...cantons])].map((c) => <Chip key={c} size="md" label={c} on={cantons.includes(c)} onClick={() => setCantons(toggle(cantons, c))} />)}

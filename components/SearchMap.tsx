@@ -3,7 +3,7 @@
 import "leaflet/dist/leaflet.css";
 import { useEffect, useRef } from "react";
 import type { Map as LeafletMap, Marker } from "leaflet";
-import { shortCrc } from "@/lib/format";
+import { priceShortLabel } from "@/lib/format";
 import type { PropertySummary } from "@/lib/types";
 
 const STREETS = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}";
@@ -18,7 +18,7 @@ export async function addTiles(map: LeafletMap) {
 }
 
 const markerHtml = (p: PropertySummary, act: boolean) =>
-  `<div class="map-dot${act ? " is-active" : ""}"></div><div class="map-price${act ? " is-active" : ""}">${shortCrc(p.price)}</div>`;
+  `<div class="map-dot${act ? " is-active" : ""}"></div><div class="map-price${act ? " is-active" : ""}">${priceShortLabel(p)}</div>`;
 
 interface Props {
   properties: PropertySummary[];

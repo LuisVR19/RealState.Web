@@ -1,6 +1,6 @@
 "use client";
 
-import { crc, pricePeriod, waProperty } from "@/lib/format";
+import { priceLine, waProperty } from "@/lib/format";
 import { img } from "@/lib/img";
 import type { Agent, PropertySummary } from "@/lib/types";
 import { useUI } from "../ui-provider";
@@ -24,7 +24,7 @@ export function VisitDialog({ agent, property }: { agent: Agent; property?: Prop
             <div className="visit-prop-img"><img src={img(property.images[0], 400)} alt="" /></div>
             <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>
               <span style={{ fontSize: 13, lineHeight: 1.3 }}>{property.title}</span>
-              <span style={{ fontSize: 13, color: "var(--color-accent-300)" }}>{crc(property.price)} {pricePeriod(property)}</span>
+              <span style={{ fontSize: 13, color: "var(--color-accent-300)" }}>{priceLine(property)}</span>
             </div>
           </div>
         )}
