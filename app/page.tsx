@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { img } from "@/lib/img";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { AdBanner } from "@/components/AdBanner";
@@ -53,7 +54,7 @@ async function HomeContent() {
             <div className="hero-note"><i className="ph ph-whatsapp-logo" style={{ fontSize: 16, color: "var(--color-accent)" }} />Respuesta por WhatsApp en menos de 15 minutos, de lunes a sábado.</div>
           </div>
           {hero && <Link href={propertyPath(hero)} className="hero-card">
-            <div className="lighten fill"><img src={hero.images[0]} alt={hero.title} /></div>
+            <div className="lighten fill"><img src={img(hero.images[0], 1600)} alt={hero.title} /></div>
             <div className="hero-card-info">
               <span className="eyebrow" style={{ fontSize: 11, letterSpacing: ".1em" }}>Destacada</span>
               <span style={{ fontSize: 20, fontWeight: 500, letterSpacing: "-0.02em" }}>{crc(hero.price)}</span>
@@ -104,7 +105,7 @@ async function HomeContent() {
               const c = props.filter((p) => p.canton === z.name).length;
               return (
                 <Link key={z.id} href={searchPath({ cantons: [z.name] })} className="zone-card">
-                  <div className="lighten fill"><img src={z.imageUrl} alt={z.label} loading="lazy" /></div>
+                  <div className="lighten fill"><img src={img(z.imageUrl, 800)} alt={z.label} loading="lazy" /></div>
                   <div className="zone-card-shade" />
                   <div className="zone-card-text">
                     <span style={{ fontSize: 19, fontWeight: 500 }}>{z.label}</span>

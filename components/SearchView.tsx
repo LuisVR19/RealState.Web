@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { img } from "@/lib/img";
 import { usePathname, useRouter } from "next/navigation";
 import { Fragment, useEffect, useRef, useState, useTransition, type MouseEvent } from "react";
 import type { Map as LeafletMap } from "leaflet";
@@ -295,7 +296,7 @@ export function SearchView({ properties, total, agents, filters: f, activeChips,
           </div>
           {sel && (
             <Link href={propertyPath(sel)} className="map-preview">
-              <div className="map-preview-img"><img src={sel.images[0]} alt={sel.title} /></div>
+              <div className="map-preview-img"><img src={img(sel.images[0], 400)} alt={sel.title} /></div>
               <div className="map-preview-body">
                 <span style={{ fontSize: 11, color: "var(--color-accent-300)" }}>{OP_LABEL[sel.operation]} · {sel.type}</span>
                 <span style={{ fontSize: 18, fontWeight: 500, letterSpacing: "-0.02em" }}>{crc(sel.price)}<span style={{ fontSize: 12, fontWeight: 400, color: "var(--color-neutral-400)" }}> {priceSuffix(sel)}</span></span>

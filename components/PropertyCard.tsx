@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { img } from "@/lib/img";
 import { useRouter } from "next/navigation";
 import { useState, type MouseEvent } from "react";
 import { crc, OP_LABEL, priceSuffix, specs, waProperty } from "@/lib/format";
@@ -28,7 +29,7 @@ export function PropertyCard({ property: p, agent: a, active, onHover }: Props) 
   return (
     <div className={`pcard${active ? " is-active" : ""}`} data-property={p.id} onClick={() => router.push(href)} onMouseEnter={() => onHover?.(p.id)} onMouseLeave={() => onHover?.(null)}>
       <div className="pcard-media">
-        <div className="lighten fill"><img src={p.images[idx]} alt={p.title} loading="lazy" /></div>
+        <div className="lighten fill"><img src={img(p.images[idx], 800)} alt={p.title} loading="lazy" decoding="async" /></div>
         <div className="pcard-tags">
           <span className="tag tag-neutral">{OP_LABEL[p.operation]}</span>
           {p.tag && <span className="tag tag-accent">{p.tag}</span>}

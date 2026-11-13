@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { img } from "@/lib/img";
 import { crc, decimal, pricePeriod } from "@/lib/format";
 import { propertyPath } from "@/lib/routes";
 import type { PropertySummary } from "@/lib/types";
@@ -39,7 +40,7 @@ export function ShareDialog({ property: p }: { property: PropertySummary }) {
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <span style={{ fontSize: 12, color: "var(--color-neutral-500)" }}>Así se verá al compartir el enlace</span>
           <div className="og-card">
-            <div className="og-card-img"><img src={p.images[0]} alt="" /></div>
+            <div className="og-card-img"><img src={img(p.images[0], 400)} alt="" /></div>
             <div className="og-card-body">
               <span className="og-card-domain">{domain}</span>
               <span style={{ fontSize: 15, fontWeight: 500, lineHeight: 1.3 }}>{p.title} | Thomas Mata S.A.</span>

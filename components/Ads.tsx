@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { img } from "@/lib/img";
 import type { CSSProperties, ReactNode } from "react";
 import { adInitials, adLinkProps, type Ad } from "@/lib/ads";
 
@@ -28,7 +29,7 @@ function AdLink({ ad, className, children, ariaLabel }: { ad: Ad; className?: st
 export function AdLogo({ ad, size = 44 }: { ad: Ad; size?: number }) {
   return (
     <span className="ad-logo" style={{ ...brandVar(ad), width: size, height: size, fontSize: Math.round(size * 0.34) }} aria-hidden>
-      {ad.logoUrl ? <img src={ad.logoUrl} alt="" /> : adInitials(ad.brand)}
+      {ad.logoUrl ? <img src={img(ad.logoUrl, 160)} alt="" /> : adInitials(ad.brand)}
     </span>
   );
 }
@@ -48,7 +49,7 @@ export function SponsoredCard({ ad }: { ad: Ad }) {
   return (
     <AdLink ad={ad} className="ad-card" ariaLabel={`Publicidad de ${ad.brand}: ${ad.headline}`}>
       <div className="ad-card-media" style={brandVar(ad)}>
-        {ad.imageUrl ? <div className="lighten fill"><img src={ad.imageUrl} alt="" loading="lazy" /></div> : <i className={`ph ${ad.icon} ad-card-icon`} aria-hidden />}
+        {ad.imageUrl ? <div className="lighten fill"><img src={img(ad.imageUrl, 800)} alt="" loading="lazy" /></div> : <i className={`ph ${ad.icon} ad-card-icon`} aria-hidden />}
         <span className="ad-card-shade" />
         <span className="ad-card-tag">Patrocinado</span>
         <span className="ad-card-headline">{ad.headline}</span>

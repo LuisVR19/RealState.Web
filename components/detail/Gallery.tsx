@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { img } from "@/lib/img";
 
 /** Galería de la ficha: mosaico en escritorio, carrusel en celular y visor a pantalla completa. */
 export function Gallery({ images, title }: { images: string[]; title: string }) {
@@ -25,13 +26,13 @@ export function Gallery({ images, title }: { images: string[]; title: string }) 
   return (
     <>
       <div className="gallery-desk">
-        <button onClick={() => show(0)} className="gallery-main"><div className="lighten fill"><img src={images[0]} alt={title} /></div></button>
-        <button onClick={() => show(1)}><div className="lighten fill"><img src={images[1 % k]} alt="" /></div></button>
-        <button onClick={() => show(2)}><div className="lighten fill"><img src={images[2 % k]} alt="" /></div></button>
+        <button onClick={() => show(0)} className="gallery-main"><div className="lighten fill"><img src={img(images[0], 1200)} alt={title} /></div></button>
+        <button onClick={() => show(1)}><div className="lighten fill"><img src={img(images[1 % k], 800)} alt="" /></div></button>
+        <button onClick={() => show(2)}><div className="lighten fill"><img src={img(images[2 % k], 800)} alt="" /></div></button>
         <button className="btn btn-secondary gallery-all" onClick={() => show(0)}><i className="ph ph-squares-four" style={{ fontSize: 16 }} />Ver las {k} fotos</button>
       </div>
       <div className="gallery-mob">
-        <div onClick={() => setLightbox(true)} className="lighten fill"><img src={images[idx]} alt={title} /></div>
+        <div onClick={() => setLightbox(true)} className="lighten fill"><img src={img(images[idx], 1200)} alt={title} /></div>
         <button onClick={() => step(-1)} aria-label="Anterior" className="gallery-mob-nav is-prev"><i className="ph ph-caret-left" style={{ fontSize: 17 }} /></button>
         <button onClick={() => step(1)} aria-label="Siguiente" className="gallery-mob-nav is-next"><i className="ph ph-caret-right" style={{ fontSize: 17 }} /></button>
         <span className="gallery-mob-counter">{idx + 1} / {k}</span>
@@ -43,13 +44,13 @@ export function Gallery({ images, title }: { images: string[]; title: string }) 
             <button className="lightbox-close" onClick={() => setLightbox(false)} aria-label="Cerrar" title="Cerrar (Esc)"><i className="ph ph-x" style={{ fontSize: 20 }} /></button>
           </div>
           <div className="lightbox-stage">
-            <img src={images[idx]} alt="" />
+            <img src={img(images[idx], 1600)} alt="" />
             <button onClick={() => step(-1)} aria-label="Anterior" className="lightbox-nav is-prev"><i className="ph ph-caret-left" style={{ fontSize: 19 }} /></button>
             <button onClick={() => step(1)} aria-label="Siguiente" className="lightbox-nav is-next"><i className="ph ph-caret-right" style={{ fontSize: 19 }} /></button>
           </div>
           <div className="lightbox-thumbs">
             {images.map((src, i) => (
-              <button key={i} onClick={() => setIdx(i)} style={{ opacity: i === idx ? 1 : 0.5, boxShadow: i === idx ? "0 0 0 2px var(--color-accent)" : "none" }}><img src={src} alt="" /></button>
+              <button key={i} onClick={() => setIdx(i)} style={{ opacity: i === idx ? 1 : 0.5, boxShadow: i === idx ? "0 0 0 2px var(--color-accent)" : "none" }}><img src={img(src, 160)} alt="" loading="lazy" /></button>
             ))}
           </div>
         </div>

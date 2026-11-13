@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { img } from "@/lib/img";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
@@ -35,7 +36,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   return {
     title,
     description,
-    openGraph: { title: p.title, description, url: propertyPath(p), images: [{ url: p.images[0], width: 1200, height: 630 }] },
+    openGraph: { title: p.title, description, url: propertyPath(p), images: [{ url: img(p.images[0], 1200, "jpeg"), width: 1200 }] },
   };
 }
 
