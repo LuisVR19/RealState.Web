@@ -7,14 +7,20 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "./database.types";
 import { supabaseEnv } from "./env";
 
-let client: ReturnType<typeof createClient<Database>> | null = null;
-
+//
+// IMPORTANTE (Cloudflare Workers): un cliente NUEVO por llamada, nunca un singleton de módulo.
+// Un isolate de Workers atiende muchas peticiones a la vez, y una promesa creada en la petición A
+// que espera la petición B queda colgada para siempre si A termina antes (el runtime descarta esa
+// continuación: "This promise was created by a request that has since ended"). supabase-js guarda
+// promesas internas de auth (initializePromise, refresh en curso) y cada consulta las espera vía
+// auth.getSession(): con un singleton, una petición cortada envenenaba el isolate entero y TODAS
+// las páginas daban 500 ("Worker's code had hung") hasta que Cloudflare lo reciclaba.
+//
+// `accessToken` hace que supabase-js no use su cliente de auth (GoTrue): devuelve null y cae a la
+// anon key, que es justo el rol que queremos aquí. Crear el cliente es barato (solo objetos).
 export function createPublicClient() {
-  if (!client) {
-    const { url, key } = supabaseEnv();
-    client = createClient<Database>(url, key, {
-      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-    });
-  }
-  return client;
+  const { url, key } = supabaseEnv();
+  return createClient<Database>(url, key, {
+    accessToken: async () => null,
+  });
 }
