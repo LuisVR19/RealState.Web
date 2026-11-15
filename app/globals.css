@@ -150,6 +150,10 @@ button { font-family: inherit; }
 .pcard-body { flex: 1; display: flex; flex-direction: column; gap: 6px; padding: 14px 2px 4px; }
 .pcard-price { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
 .pcard-price-main { font-size: 20px; font-weight: 500; letter-spacing: -0.02em; }
+/* — oferta (precio con descuento): precio original tachado y marca "Oferta −N %" — */
+.price-was { font-weight: 400; color: var(--color-neutral-500); text-decoration: line-through; text-decoration-thickness: 1px; white-space: nowrap; }
+.offer-tag { gap: 4px; font-weight: 500; }
+.offer-tag i { font-size: 12px; }
 .pcard-title { font-size: 14px; line-height: 1.35; color: var(--color-neutral-200); text-wrap: pretty; text-decoration: none; }
 .pcard-title:hover { color: var(--color-neutral-200); }
 .pcard-zone { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--color-neutral-400); }

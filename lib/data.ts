@@ -11,7 +11,7 @@ import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { connection } from "next/server";
 import { adFromRow, type Ad, type AdPlacement } from "./ads";
-import { CANTONS, formatPhone, initialsOf, KM_PRESETS, matchingPreset, YEAR_PRESETS } from "./format";
+import { CANTONS, effectivePrice, formatPhone, initialsOf, KM_PRESETS, matchingPreset, YEAR_PRESETS } from "./format";
 import { EMPTY_FILTERS, PAGE_SIZE } from "./search-params";
 import type { Database } from "./supabase/database.types";
 import { createPublicClient } from "./supabase/public";
@@ -67,6 +67,7 @@ function toSummary(r: SearchRow): PropertySummary {
     transmission: r.transmission ?? undefined,
     fuel: r.fuel ?? undefined,
     serviceRate: r.service_rate ?? undefined,
+    discountPrice: r.discount_price ? Number(r.discount_price) : undefined,
     agentId: r.agent_id,
     images: r.image_urls ?? [],
     daysPublished: daysSince(r.published_at),
@@ -265,7 +266,7 @@ async function getPropertyByCodeCached(code: string): Promise<Property | null> {
     .select(
       "id, code, title, description, operation, type, status, featured, tag, country, province, canton, zone, address, lat, lng, price, " +
         "maintenance_fee, bedrooms, bathrooms, area_m2, parking_spaces, year_built, guests, floor, delivery, agent_id, published_at, " +
-        "category, brand, model, mileage_km, transmission, fuel, drivetrain, engine_cc, color, doors, service_rate, " +
+        "category, brand, model, mileage_km, transmission, fuel, drivetrain, engine_cc, color, doors, service_rate, discount_price, " +
         "property_images(url, position), property_amenities(amenities(name))",
     )
     .eq("code", code)
@@ -314,6 +315,7 @@ async function getPropertyByCodeCached(code: string): Promise<Property | null> {
     transmission: r.transmission ?? undefined,
     fuel: r.fuel ?? undefined,
     serviceRate: r.service_rate ?? undefined,
+    discountPrice: r.discount_price ? Number(r.discount_price) : undefined,
     drivetrain: r.drivetrain ?? undefined,
     engineCc: r.engine_cc ?? undefined,
     color: r.color ?? undefined,
@@ -336,7 +338,7 @@ export async function getSimilarProperties(p: PropertySummary, limit = 3): Promi
   const { items } = await getPublishedProperties();
   return items
     .filter((x) => x.id !== p.id && x.category === p.category && (x.operation === p.operation || x.type === p.type))
-    .sort((x, y) => Number(y.operation === p.operation) - Number(x.operation === p.operation) || Math.abs(x.price - p.price) - Math.abs(y.price - p.price))
+    .sort((x, y) => Number(y.operation === p.operation) - Number(x.operation === p.operation) || Math.abs(effectivePrice(x) - effectivePrice(p)) - Math.abs(effectivePrice(y) - effectivePrice(p)))
     .slice(0, limit);
 }
 

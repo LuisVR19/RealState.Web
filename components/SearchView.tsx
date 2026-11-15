@@ -16,6 +16,7 @@ import { track } from "@/lib/track";
 import type { Agent, Category, Operation, PropertySummary, SearchFilters, SortOrder } from "@/lib/types";
 import { Chip, toggle } from "./Chip";
 import { SponsoredCard } from "./Ads";
+import { PriceWas } from "./Offer";
 import { PropertyCard } from "./PropertyCard";
 import { MAP_ATTRIBUTION, SearchMap } from "./SearchMap";
 import { PropertyGridSkeleton } from "./Skeletons";
@@ -308,7 +309,7 @@ export function SearchView({ properties, total, agents, filters: f, activeChips,
               <div className="map-preview-img"><img src={img(sel.images[0], 400)} alt={sel.title} /></div>
               <div className="map-preview-body">
                 <span style={{ fontSize: 11, color: "var(--color-accent-300)" }}>{OP_LABEL[sel.operation]} · {sel.type}</span>
-                <span style={{ fontSize: 18, fontWeight: 500, letterSpacing: "-0.02em" }}>{pricePrefix(sel) && <span style={{ fontSize: 12, fontWeight: 400, color: "var(--color-neutral-400)" }}>{pricePrefix(sel)} </span>}{priceMain(sel)}<span style={{ fontSize: 12, fontWeight: 400, color: "var(--color-neutral-400)" }}> {priceSuffix(sel)}</span></span>
+                <span style={{ fontSize: 18, fontWeight: 500, letterSpacing: "-0.02em" }}>{pricePrefix(sel) && <span style={{ fontSize: 12, fontWeight: 400, color: "var(--color-neutral-400)" }}>{pricePrefix(sel)} </span>}{priceMain(sel)} <PriceWas p={sel} size={12} /><span style={{ fontSize: 12, fontWeight: 400, color: "var(--color-neutral-400)" }}> {priceSuffix(sel)}</span></span>
                 <span style={{ fontSize: 13, color: "var(--color-neutral-200)", lineHeight: 1.3 }}>{sel.title}</span>
                 <span className="arrow-link" style={{ marginTop: "auto" }}>Ver detalle<i className="ph ph-arrow-right" /></span>
               </div>

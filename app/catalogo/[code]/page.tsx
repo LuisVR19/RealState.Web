@@ -15,7 +15,8 @@ import { PropertyDetailSkeleton } from "@/components/Skeletons";
 import { TrackView } from "@/components/TrackView";
 import { VisitScheduler } from "@/components/VisitScheduler";
 import { agentResolver, getActiveAds, getAgentOrTeam, getPropertyByCode, getPublishedProperties, getSimilarProperties } from "@/lib/data";
-import { amenityIcon, crc, decimal, dots, isService, isVehicle, monthlyPayment, OP_LABEL, priceLine, priceMain, pricePrefix, priceSuffix, vehicleName, waProperty } from "@/lib/format";
+import { OfferTag, PriceWas } from "@/components/Offer";
+import { amenityIcon, crc, decimal, dots, effectivePrice, isService, isVehicle, monthlyPayment, OP_LABEL, priceLine, priceMain, pricePrefix, priceSuffix, priceText, vehicleName, waProperty } from "@/lib/format";
 import { agentPath, propertyPath } from "@/lib/routes";
 
 type Params = Pick<PageProps<"/catalogo/[code]">, "params">;
@@ -32,7 +33,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const p = await getPropertyByCode((await params).code);
   if (!p) return { title: "Anuncio no disponible · Thomas Mata S.A." };
   const title = `${p.title} | Thomas Mata S.A.`;
-  const description = `${p.zone}, ${p.canton} · ${priceLine(p)}`;
+  const description = `${p.zone}, ${p.canton} · ${priceText(p)}`;
   return {
     title,
     description,
@@ -128,6 +129,7 @@ async function PropertyDetail({ params }: Params) {
                 <span className="tag tag-neutral">{OP_LABEL[p.operation]}</span>
                 <span className="tag tag-neutral">{p.type}</span>
                 {vehicle && vehicleName(p) && <span className="tag tag-neutral">{vehicleName(p)}</span>}
+                <OfferTag p={p} />
                 {p.tag && <span className="tag tag-accent">{p.tag}</span>}
               </div>
               <h1 className="detail-title">{p.title}</h1>
@@ -135,9 +137,10 @@ async function PropertyDetail({ params }: Params) {
               <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
                 {pricePrefix(p) && <span style={{ fontSize: 14, color: "var(--color-neutral-400)" }}>{pricePrefix(p)}</span>}
                 <span className="detail-price">{priceMain(p)}</span>
+                <PriceWas p={p} size={18} />
                 <span style={{ fontSize: 14, color: "var(--color-neutral-400)" }}>{priceSuffix(p)}</span>
               </div>
-              {showCalc && <span style={{ fontSize: 13, color: "var(--color-accent-300)" }}>Cuota estimada desde {crc(monthlyPayment(p.price, 20, 25, 9).monthly)}/mes</span>}
+              {showCalc && <span style={{ fontSize: 13, color: "var(--color-accent-300)" }}>Cuota estimada desde {crc(monthlyPayment(effectivePrice(p), 20, 25, 9).monthly)}/mes</span>}
             </div>
 
             <div className="grid-facts">

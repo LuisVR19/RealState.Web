@@ -80,6 +80,8 @@ export interface PropertySummary {
   lat: number;
   lng: number;
   price: number; // CRC. Mensual si es alquiler, por noche si es vacacional
+  /** Precio con descuento (oferta), misma unidad que price. Sin valor = sin oferta. Ver hasOffer (lib/format.ts). */
+  discountPrice?: number;
   bedrooms: number;
   bathrooms: number;
   areaM2: number;

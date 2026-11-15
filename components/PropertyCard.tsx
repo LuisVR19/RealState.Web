@@ -7,6 +7,7 @@ import { useState, type MouseEvent } from "react";
 import { OP_LABEL, priceMain, pricePrefix, priceSuffix, specs, waProperty } from "@/lib/format";
 import { propertyPath } from "@/lib/routes";
 import type { Agent, PropertySummary } from "@/lib/types";
+import { OfferTag, PriceWas } from "./Offer";
 import { useUI } from "./ui-provider";
 
 interface Props {
@@ -32,6 +33,7 @@ export function PropertyCard({ property: p, agent: a, active, onHover }: Props) 
         <div className="lighten fill"><img src={img(p.images[idx], 800)} alt={p.title} loading="lazy" decoding="async" /></div>
         <div className="pcard-tags">
           <span className="tag tag-neutral">{OP_LABEL[p.operation]}</span>
+          <OfferTag p={p} />
           {p.tag && <span className="tag tag-accent">{p.tag}</span>}
         </div>
         <button onClick={stop(() => void toggleFavorite(p.id))} aria-label={fav ? "Quitar de guardados" : "Guardar anuncio"} aria-pressed={fav} className="pcard-fav" style={{ color: fav ? "var(--color-accent-300)" : "var(--color-text)" }}>
@@ -49,6 +51,7 @@ export function PropertyCard({ property: p, agent: a, active, onHover }: Props) 
         <div className="pcard-price">
           {pricePrefix(p) && <span style={{ fontSize: 12, color: "var(--color-neutral-400)" }}>{pricePrefix(p)}</span>}
           <span className="pcard-price-main">{priceMain(p)}</span>
+          <PriceWas p={p} />
           <span style={{ fontSize: 12, color: "var(--color-neutral-400)" }}>{priceSuffix(p)}</span>
         </div>
         <Link href={href} className="pcard-title" onClick={(e) => e.stopPropagation()}>{p.title}</Link>

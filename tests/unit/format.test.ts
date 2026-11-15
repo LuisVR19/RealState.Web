@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { categoryOf, crc, formatPhone, isValidPhone, matchTypesOf, monthlyPayment, normalizePhone, operationsOf, priceLine, shortCrc } from "@/lib/format";
+import {
+  categoryOf, crc, discountPct, effectivePrice, formatPhone, hasOffer, isValidPhone, matchTypesOf, monthlyPayment, normalizePhone, offerLabel,
+  operationsOf, priceLine, priceMain, priceShortLabel, priceSuffix, priceText, priceWas, shortCrc,
+} from "@/lib/format";
 import type { PropertySummary } from "@/lib/types";
 
 describe("teléfonos de Costa Rica", () => {
@@ -72,5 +75,53 @@ describe("servicios: categoría y precio", () => {
   it("un inmueble en venta no muestra periodo y uno en alquiler sí", () => {
     expect(priceLine({ ...base, category: "Inmueble", type: "Casa", operation: "Venta", price: 1000 })).toBe("₡1.000");
     expect(priceLine({ ...base, category: "Inmueble", type: "Casa", operation: "Alquiler", price: 1000 })).toBe("₡1.000/mes");
+  });
+});
+
+describe("oferta (precio con descuento)", () => {
+  const casa: PropertySummary = {
+    id: "1", code: "ISF-0001", title: "x", category: "Inmueble", operation: "Venta", type: "Casa", featured: false, canton: "Cartago",
+    zone: "Centro", lat: 0, lng: 0, price: 100_000_000, bedrooms: 3, bathrooms: 2, areaM2: 200, parkingSpaces: 1, agentId: "a", images: [], daysPublished: 0,
+  };
+  const oferta = { ...casa, discountPrice: 85_000_000 };
+
+  it("sin precio con descuento no hay oferta y todo queda igual", () => {
+    expect(hasOffer(casa)).toBe(false);
+    expect(effectivePrice(casa)).toBe(100_000_000);
+    expect(priceWas(casa)).toBe("");
+    expect(priceText(casa)).toBe(priceLine(casa));
+    expect(discountPct(casa)).toBe(0);
+  });
+
+  it("con oferta muestra el precio con descuento y el original como 'antes'", () => {
+    expect(hasOffer(oferta)).toBe(true);
+    expect(effectivePrice(oferta)).toBe(85_000_000);
+    expect(priceMain(oferta)).toBe("₡85.000.000");
+    expect(priceShortLabel(oferta)).toBe("₡85 M");
+    expect(priceWas(oferta)).toBe("₡100.000.000");
+    expect(priceLine(oferta)).toBe("₡85.000.000");
+    expect(priceText(oferta)).toBe("₡85.000.000 (antes ₡100.000.000)");
+  });
+
+  it("el precio por m² usa el precio con descuento", () => {
+    expect(priceSuffix(oferta)).toBe(shortCrc(85_000_000 / 200) + "/m²");
+  });
+
+  it("alquiler: conserva el periodo", () => {
+    const alquiler = { ...casa, operation: "Alquiler" as const, price: 500_000, discountPrice: 450_000 };
+    expect(priceText(alquiler)).toBe("₡450.000/mes (antes ₡500.000)");
+  });
+
+  it("porcentaje redondeado y marca", () => {
+    expect(discountPct(oferta)).toBe(15);
+    expect(offerLabel(oferta)).toBe("Oferta −15 %");
+    expect(offerLabel({ ...casa, discountPrice: 99_900_000 })).toBe("Oferta"); // 0,1 % redondea a 0
+  });
+
+  it("ignora descuentos inválidos (igual o mayor al precio, 0) y los servicios 'A convenir'", () => {
+    expect(hasOffer({ ...casa, discountPrice: 100_000_000 })).toBe(false);
+    expect(hasOffer({ ...casa, discountPrice: 120_000_000 })).toBe(false);
+    expect(hasOffer({ ...casa, discountPrice: 0 })).toBe(false);
+    expect(hasOffer({ serviceRate: "A convenir" as const, price: 0, discountPrice: 10 })).toBe(false);
   });
 });

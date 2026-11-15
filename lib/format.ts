@@ -134,18 +134,32 @@ export const noPrice = (p: Pick<PropertySummary, "serviceRate">) => p.serviceRat
 /** Texto antes del precio: "Desde" en preventa y en servicios cobrados por proyecto. */
 export const pricePrefix = (p: Pick<PropertySummary, "operation" | "serviceRate">) =>
   p.operation === "Preventa" || p.serviceRate === "Por proyecto" ? "Desde" : "";
-/** Precio principal: "₡1.000" o "A convenir". */
-export const priceMain = (p: Pick<PropertySummary, "price" | "serviceRate">) => (noPrice(p) ? "A convenir" : crc(p.price));
-/** Precio corto (marcadores del mapa): "₡1,2 M" o "A convenir". */
-export const priceShortLabel = (p: Pick<PropertySummary, "price" | "serviceRate">) => (noPrice(p) ? "A convenir" : shortCrc(p.price));
+type Priced = Pick<PropertySummary, "price" | "discountPrice" | "serviceRate">;
+/** En oferta: tiene precio con descuento menor que el precio (la base ya lo exige; aquí se vuelve a comprobar). */
+export const hasOffer = (p: Priced) => !noPrice(p) && !!p.discountPrice && p.discountPrice > 0 && p.discountPrice < p.price;
+/** Precio que paga el cliente: el de oferta si la hay, si no el normal. */
+export const effectivePrice = (p: Priced) => (hasOffer(p) ? (p.discountPrice as number) : p.price);
+/** Porcentaje de descuento redondeado (0 sin oferta). */
+export const discountPct = (p: Priced) => (hasOffer(p) ? Math.round((1 - (p.discountPrice as number) / p.price) * 100) : 0);
+/** Marca de oferta: "Oferta −15 %" (o solo "Oferta" si el descuento redondea a 0 %). */
+export const offerLabel = (p: Priced) => (discountPct(p) >= 1 ? `Oferta −${discountPct(p)} %` : "Oferta");
+/** Precio principal: "₡1.000" o "A convenir". Con oferta, el precio con descuento. */
+export const priceMain = (p: Priced) => (noPrice(p) ? "A convenir" : crc(effectivePrice(p)));
+/** Precio original tachado de una oferta ("" sin oferta). */
+export const priceWas = (p: Priced) => (hasOffer(p) ? crc(p.price) : "");
+/** Precio corto (marcadores del mapa): "₡1,2 M" o "A convenir". Con oferta, el precio con descuento. */
+export const priceShortLabel = (p: Priced) => (noPrice(p) ? "A convenir" : shortCrc(effectivePrice(p)));
 /** Periodo del precio: /mes, /noche o /hora. */
 export const pricePeriod = (p: Pick<PropertySummary, "operation" | "serviceRate">) =>
   p.operation === "Alquiler" ? "/mes" : p.operation === "Vacacional" ? "/noche" : p.serviceRate === "Por hora" ? "/hora" : "";
 /** Texto que acompaña al precio: el periodo o el precio por m² (solo inmuebles en venta). */
 export const priceSuffix = (p: PropertySummary) =>
-  pricePeriod(p) || (categoryOf(p.type) === "Inmueble" && p.areaM2 ? shortCrc(p.price / p.areaM2) + "/m²" : "");
-/** Precio completo en una línea: "Desde ₡50.000", "₡15.000/hora", "A convenir". */
-export const priceLine = (p: PropertySummary) => (noPrice(p) ? "A convenir" : [pricePrefix(p), crc(p.price) + pricePeriod(p)].filter(Boolean).join(" "));
+  pricePeriod(p) || (categoryOf(p.type) === "Inmueble" && p.areaM2 ? shortCrc(effectivePrice(p) / p.areaM2) + "/m²" : "");
+/** Precio completo en una línea: "Desde ₡50.000", "₡15.000/hora", "A convenir". Con oferta, el precio con descuento. */
+export const priceLine = (p: PropertySummary) =>
+  noPrice(p) ? "A convenir" : [pricePrefix(p), crc(effectivePrice(p)) + pricePeriod(p)].filter(Boolean).join(" ");
+/** priceLine + precio anterior para textos (meta description, compartir): "₡3.825.000/mes (antes ₡4.500.000)". */
+export const priceText = (p: PropertySummary) => (hasOffer(p) ? `${priceLine(p)} (antes ${crc(p.price)})` : priceLine(p));
 
 export const specs = (p: PropertySummary) =>
   (isService(p)
