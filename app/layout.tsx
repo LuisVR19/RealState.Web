@@ -5,6 +5,7 @@ import "@phosphor-icons/web/fill";
 import "./styles/ds.css";
 import "./globals.css";
 import { Suspense } from "react";
+import Script from "next/script";
 import { AuthNotice } from "@/components/AuthNotice";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteTracker } from "@/components/SiteTracker";
@@ -37,6 +38,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="es" className={geist.variable}>
       <body>
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2969948141084462"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
         <UIProvider totalProperties={total} amenities={amenities} locations={locations} contact={contact}>
           {/* SiteHeader lee usePathname(): en rutas que se resuelven al pedirlas (p. ej. un 404 de
               /catalogo/<código inválido>) Next exige un Suspense para no bloquear el prerender. */}
